@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+
+<html dir="rtl" lang="he"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>TicketGuard - העלאת דוח</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary-container": "#ffa588",
+                        "surface": "#f8f9ff",
+                        "on-surface": "#0b1c30",
+                        "on-secondary": "#ffffff",
+                        "tertiary-container": "#8b2900",
+                        "on-error": "#ffffff",
+                        "secondary-container": "#92f5a4",
+                        "surface-variant": "#d3e4fe",
+                        "error": "#ba1a1a",
+                        "secondary-fixed": "#95f8a7",
+                        "surface-container-low": "#eff4ff",
+                        "surface-dim": "#cbdbf5",
+                        "outline-variant": "#c4c5d5",
+                        "on-secondary-fixed": "#00210a",
+                        "on-surface-variant": "#444653",
+                        "surface-tint": "#3755c3",
+                        "surface-bright": "#f8f9ff",
+                        "tertiary-fixed": "#ffdbd0",
+                        "on-error-container": "#93000a",
+                        "primary-container": "#1e40af",
+                        "surface-container-lowest": "#ffffff",
+                        "on-primary": "#ffffff",
+                        "outline": "#757684",
+                        "on-background": "#0b1c30",
+                        "on-tertiary": "#ffffff",
+                        "on-primary-container": "#a8b8ff",
+                        "inverse-surface": "#213145",
+                        "tertiary-fixed-dim": "#ffb59d",
+                        "inverse-primary": "#b8c4ff",
+                        "on-tertiary-fixed": "#390c00",
+                        "primary": "#00288e",
+                        "on-secondary-fixed-variant": "#005323",
+                        "background": "#f8f9ff",
+                        "on-tertiary-fixed-variant": "#832600",
+                        "on-primary-fixed-variant": "#173bab",
+                        "secondary-fixed-dim": "#79db8d",
+                        "on-secondary-container": "#007233",
+                        "primary-fixed-dim": "#b8c4ff",
+                        "inverse-on-surface": "#eaf1ff",
+                        "surface-container": "#e5eeff",
+                        "tertiary": "#641b00",
+                        "primary-fixed": "#dde1ff",
+                        "secondary": "#006d30",
+                        "on-primary-fixed": "#001453",
+                        "surface-container-high": "#dce9ff",
+                        "error-container": "#ffdad6",
+                        "surface-container-highest": "#d3e4fe"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "gutter": "1.5rem",
+                        "base": "4px",
+                        "margin-desktop": "2.5rem",
+                        "sm": "1rem",
+                        "xs": "0.5rem",
+                        "md": "1.5rem",
+                        "margin-mobile": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem"
+                    },
+                    "fontFamily": {
+                        "headline-lg": ["Heebo"],
+                        "label-lg": ["Heebo"],
+                        "headline-md": ["Heebo"],
+                        "headline-lg-mobile": ["Heebo"],
+                        "body-lg": ["Heebo"],
+                        "headline-sm": ["Heebo"],
+                        "display-lg": ["Heebo"],
+                        "label-md": ["Heebo"],
+                        "code": ["Heebo"],
+                        "body-sm": ["Heebo"],
+                        "body-md": ["Heebo"]
+                    },
+                    "fontSize": {
+                        "headline-lg": ["32px", { "lineHeight": "40px", "fontWeight": "700" }],
+                        "label-lg": ["14px", { "lineHeight": "20px", "fontWeight": "600" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "600" }],
+                        "headline-lg-mobile": ["28px", { "lineHeight": "36px", "fontWeight": "700" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "display-lg": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "label-md": ["12px", { "lineHeight": "16px", "fontWeight": "500" }],
+                        "code": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .file-active {
+            border-color: theme('colors.primary');
+            background-color: theme('colors.surface-container');
+        }
+        .loader {
+            border: 3px solid theme('colors.surface-variant');
+            border-bottom-color: theme('colors.primary');
+            border-radius: 50%;
+            display: inline-block;
+            box-sizing: border-box;
+            animation: rotation 1s linear infinite;
+        }
+        @keyframes rotation {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen flex flex-col font-body-md">
+<!-- TopNavBar -->
+<header class="bg-surface shadow-sm border-b border-outline-variant flex flex-row-reverse justify-between items-center w-full px-margin-mobile md:px-margin-desktop py-4 top-0 z-50">
+<div class="font-headline-lg text-headline-lg font-bold text-primary">TicketGuard</div>
+<nav class="hidden md:flex gap-6 items-center">
+<a class="font-headline-sm text-headline-sm text-on-surface-variant hover:text-primary transition-colors duration-200" href="#">דף הבית</a>
+<a class="font-headline-sm text-headline-sm text-primary border-b-2 border-primary pb-1 font-bold" href="#">העלאת דוח</a>
+<a class="font-headline-sm text-headline-sm text-on-surface-variant hover:text-primary transition-colors duration-200" href="#">אזור אישי</a>
+<a class="font-headline-sm text-headline-sm text-on-surface-variant hover:text-primary transition-colors duration-200" href="#">ניהול</a>
+</nav>
+<div class="flex gap-4 items-center">
+<button class="text-on-surface-variant hover:text-primary hover:bg-surface-container-high p-2 rounded-full transition-colors duration-200">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="text-on-surface-variant hover:text-primary hover:bg-surface-container-high p-2 rounded-full transition-colors duration-200">
+<span class="material-symbols-outlined">account_circle</span>
+</button>
+</div>
+</header>
+<!-- Main Content -->
+<main class="flex-grow flex items-center justify-center p-margin-mobile md:p-margin-desktop relative">
+<!-- Background decorative element -->
+<div class="absolute inset-0 z-0 opacity-40 pointer-events-none" style="background: radial-gradient(circle at 50% 0%, theme('colors.surface-container-high') 0%, transparent 70%);"></div>
+<div class="bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant w-full max-w-2xl p-8 md:p-12 z-10">
+<!-- Upload State -->
+<div class="flex flex-col items-center text-center" id="upload-section">
+<h1 class="font-display-lg text-display-lg text-on-surface mb-2">העלאת דוח לבדיקה</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant mb-8">
+                    העלה את דוח התנועה שלך בפורמט PDF לקבלת הערכת סיכויים מידית. <br/>(בדיקה ראשונה בחינם)
+                </p>
+<!-- Dropzone -->
+<div class="w-full border-2 border-dashed border-outline-variant rounded-xl p-10 flex flex-col items-center justify-center cursor-pointer transition-colors duration-200 hover:border-primary hover:bg-surface-container-low bg-surface" id="dropzone">
+<input accept=".pdf" class="hidden" id="fileInput" type="file"/>
+<span class="material-symbols-outlined text-4xl text-primary mb-4" style="font-size: 48px;">upload_file</span>
+<span class="font-headline-sm text-headline-sm text-on-surface mb-1">גרור ושחרר את הקובץ כאן</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">או לחץ לבחירת קובץ מהמחשב</span>
+</div>
+<!-- Selected File Display (Hidden initially) -->
+<div class="hidden w-full mt-6 bg-surface-container rounded-lg p-4 flex items-center justify-between border border-outline-variant" id="file-display">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary">picture_as_pdf</span>
+<span class="font-body-md text-body-md text-on-surface truncate max-w-[200px] md:max-w-[300px]" id="filename"></span>
+</div>
+<button class="text-error hover:bg-error-container p-2 rounded-full transition-colors" id="remove-file">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<!-- Error Message -->
+<div class="hidden mt-4 text-error font-body-sm text-body-sm flex items-center gap-2" id="error-message">
+<span class="material-symbols-outlined text-sm">error</span>
+<span id="error-text"></span>
+</div>
+<!-- Actions -->
+<button class="mt-8 w-full bg-surface-variant text-on-surface-variant font-label-lg text-label-lg py-4 rounded-full transition-all duration-200 cursor-not-allowed" id="analyze-btn">
+                    התחלת ניתוח דוח
+                </button>
+</div>
+<!-- Loading State (Hidden initially) -->
+<div class="hidden flex flex-col items-center justify-center py-12 text-center" id="loading-section">
+<div class="loader w-16 h-16 mb-6"></div>
+<h2 class="font-headline-md text-headline-md text-on-surface mb-2">מנתח את הדוח שלך...</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">זה עשוי לקחת רגע. אנא המתן בזמן שהמערכת סורקת את הנתונים.</p>
+</div>
+</div>
+</main>
+<!-- Footer -->
+<footer class="bg-surface-container-highest border-t border-outline-variant flex flex-col md:flex-row-reverse justify-between items-center w-full px-margin-mobile md:px-margin-desktop py-8 gap-4">
+<div class="font-headline-sm text-headline-sm font-bold text-primary">TicketGuard</div>
+<div class="flex gap-4">
+<a class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary hover:underline" href="#">תקנון תנאי שימוש</a>
+<a class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary hover:underline" href="#">מדיניות פרטיות</a>
+<a class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary hover:underline" href="#">צרו קשר</a>
+<a class="font-body-sm text-body-sm text-on-surface-variant hover:text-primary hover:underline" href="#">שאלות ותשובות</a>
+</div>
+<div class="font-body-sm text-body-sm text-on-surface">כל הזכויות שמורות ל-TicketGuard © 2024. המידע אינו מהווה ייעוץ משפטי.</div>
+</footer>
+<script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const dropzone = document.getElementById('dropzone');
+            const fileInput = document.getElementById('fileInput');
+            const fileDisplay = document.getElementById('file-display');
+            const filenameSpan = document.getElementById('filename');
+            const removeFileBtn = document.getElementById('remove-file');
+            const analyzeBtn = document.getElementById('analyze-btn');
+            const errorMessage = document.getElementById('error-message');
+            const errorText = document.getElementById('error-text');
+            
+            const uploadSection = document.getElementById('upload-section');
+            const loadingSection = document.getElementById('loading-section');
+
+            let selectedFile = null;
+
+            // Click to upload
+            dropzone.addEventListener('click', () => fileInput.click());
+
+            // Drag and drop events
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropzone.addEventListener(eventName, preventDefaults, false);
+            });
+
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropzone.addEventListener(eventName, () => {
+                    dropzone.classList.add('file-active');
+                }, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropzone.addEventListener(eventName, () => {
+                    dropzone.classList.remove('file-active');
+                }, false);
+            });
+
+            dropzone.addEventListener('drop', handleDrop, false);
+            fileInput.addEventListener('change', handleFileSelect, false);
+
+            function handleDrop(e) {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                handleFiles(files);
+            }
+
+            function handleFileSelect(e) {
+                const files = e.target.files;
+                handleFiles(files);
+            }
+
+            function handleFiles(files) {
+                hideError();
+                if (files.length === 0) return;
+                
+                const file = files[0];
+                
+                if (file.type !== 'application/pdf') {
+                    showError("ניתן להעלות קובץ PDF בלבד");
+                    resetFile();
+                    return;
+                }
+
+                selectedFile = file;
+                updateUIForFile();
+            }
+
+            function updateUIForFile() {
+                dropzone.classList.add('hidden');
+                fileDisplay.classList.remove('hidden');
+                filenameSpan.textContent = selectedFile.name;
+                
+                analyzeBtn.classList.remove('bg-surface-variant', 'text-on-surface-variant', 'cursor-not-allowed');
+                analyzeBtn.classList.add('bg-primary', 'text-on-primary', 'hover:bg-primary/90', 'shadow-sm');
+                analyzeBtn.disabled = false;
+            }
+
+            function resetFile() {
+                selectedFile = null;
+                fileInput.value = '';
+                dropzone.classList.remove('hidden');
+                fileDisplay.classList.add('hidden');
+                
+                analyzeBtn.classList.add('bg-surface-variant', 'text-on-surface-variant', 'cursor-not-allowed');
+                analyzeBtn.classList.remove('bg-primary', 'text-on-primary', 'hover:bg-primary/90', 'shadow-sm');
+                analyzeBtn.disabled = true;
+            }
+
+            removeFileBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                resetFile();
+            });
+
+            function showError(msg) {
+                errorText.textContent = msg;
+                errorMessage.classList.remove('hidden');
+            }
+
+            function hideError() {
+                errorMessage.classList.add('hidden');
+            }
+
+            analyzeBtn.addEventListener('click', () => {
+                if (!selectedFile) {
+                    showError("יש להעלות קובץ PDF לפני תחילת הבדיקה");
+                    return;
+                }
+
+                // Simulate processing
+                uploadSection.classList.add('hidden');
+                loadingSection.classList.remove('hidden');
+
+                setTimeout(() => {
+                    // Navigate to result (simulated)
+                    window.location.href = '/result';
+                }, 3000);
+            });
+        });
+    </script>
+</body></html>

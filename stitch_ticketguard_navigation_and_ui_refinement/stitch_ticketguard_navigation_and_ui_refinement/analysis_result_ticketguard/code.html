@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+
+<html dir="rtl" lang="he"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>TicketGuard - תוצאות ניתוח הדוח</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-tertiary-container": "#ffa588",
+                    "surface": "#f8f9ff",
+                    "on-surface": "#0b1c30",
+                    "on-secondary": "#ffffff",
+                    "tertiary-container": "#8b2900",
+                    "on-error": "#ffffff",
+                    "secondary-container": "#92f5a4",
+                    "surface-variant": "#d3e4fe",
+                    "error": "#ba1a1a",
+                    "secondary-fixed": "#95f8a7",
+                    "surface-container-low": "#eff4ff",
+                    "surface-dim": "#cbdbf5",
+                    "outline-variant": "#c4c5d5",
+                    "on-secondary-fixed": "#00210a",
+                    "on-surface-variant": "#444653",
+                    "surface-tint": "#3755c3",
+                    "surface-bright": "#f8f9ff",
+                    "tertiary-fixed": "#ffdbd0",
+                    "on-error-container": "#93000a",
+                    "primary-container": "#1e40af",
+                    "surface-container-lowest": "#ffffff",
+                    "on-primary": "#ffffff",
+                    "outline": "#757684",
+                    "on-background": "#0b1c30",
+                    "on-tertiary": "#ffffff",
+                    "on-primary-container": "#a8b8ff",
+                    "inverse-surface": "#213145",
+                    "tertiary-fixed-dim": "#ffb59d",
+                    "inverse-primary": "#b8c4ff",
+                    "on-tertiary-fixed": "#390c00",
+                    "primary": "#00288e",
+                    "on-secondary-fixed-variant": "#005323",
+                    "background": "#f8f9ff",
+                    "on-tertiary-fixed-variant": "#832600",
+                    "on-primary-fixed-variant": "#173bab",
+                    "secondary-fixed-dim": "#79db8d",
+                    "on-secondary-container": "#007233",
+                    "primary-fixed-dim": "#b8c4ff",
+                    "inverse-on-surface": "#eaf1ff",
+                    "surface-container": "#e5eeff",
+                    "tertiary": "#641b00",
+                    "primary-fixed": "#dde1ff",
+                    "secondary": "#006d30",
+                    "on-primary-fixed": "#001453",
+                    "surface-container-high": "#dce9ff",
+                    "error-container": "#ffdad6",
+                    "surface-container-highest": "#d3e4fe"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "gutter": "1.5rem",
+                    "base": "4px",
+                    "margin-desktop": "2.5rem",
+                    "sm": "1rem",
+                    "xs": "0.5rem",
+                    "md": "1.5rem",
+                    "margin-mobile": "1rem",
+                    "lg": "2rem",
+                    "xl": "3rem"
+            },
+            "fontFamily": {
+                    "headline-lg": ["Heebo"],
+                    "label-lg": ["Heebo"],
+                    "headline-md": ["Heebo"],
+                    "headline-lg-mobile": ["Heebo"],
+                    "body-lg": ["Heebo"],
+                    "headline-sm": ["Heebo"],
+                    "display-lg": ["Heebo"],
+                    "label-md": ["Heebo"],
+                    "code": ["Heebo"],
+                    "body-sm": ["Heebo"],
+                    "body-md": ["Heebo"]
+            },
+            "fontSize": {
+                    "headline-lg": ["32px", {"lineHeight": "40px", "fontWeight": "700"}],
+                    "label-lg": ["14px", {"lineHeight": "20px", "fontWeight": "600"}],
+                    "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "headline-lg-mobile": ["28px", {"lineHeight": "36px", "fontWeight": "700"}],
+                    "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                    "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "label-md": ["12px", {"lineHeight": "16px", "fontWeight": "500"}],
+                    "code": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}]
+            }
+          }
+        }
+      }
+    </script>
+<style>
+        body { font-family: 'Heebo', sans-serif; }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen flex flex-col">
+<!-- TopNavBar (Shared Component) -->
+<!-- Note: AnalysisResultPage is a specific result, not a top-level nav destination. 
+         However, the user prompt explicitly requested "Shared Navbar and Footer". 
+         I will render it, matching intent loosely or leaving unselected if it's deeply transactional. 
+         Since it's a result page, none of the nav items explicitly match "Result", but "אזור אישי" is closest if logged in, 
+         or it's just a public result. We will leave all inactive to prioritize the content canvas as per "Relevance Check",
+         but since the user requested it, I'll show it. -->
+<nav class="bg-surface dark:bg-surface-container-low docked full-width top-0 border-b border-outline-variant dark:border-outline shadow-sm z-50 sticky">
+<div class="flex flex-row-reverse justify-between items-center w-full px-margin-mobile md:px-margin-desktop py-4">
+<div class="font-headline-lg text-headline-lg font-bold text-primary dark:text-primary-fixed">
+                TicketGuard
+            </div>
+<div class="hidden md:flex flex-row gap-6">
+<!-- Navigation links from JSON -->
+<a class="text-on-surface-variant dark:text-surface-variant hover:text-primary hover:bg-surface-container-high transition-colors duration-200 px-3 py-2 rounded-lg font-label-lg text-label-lg" href="#">דף הבית</a>
+<a class="text-on-surface-variant dark:text-surface-variant hover:text-primary hover:bg-surface-container-high transition-colors duration-200 px-3 py-2 rounded-lg font-label-lg text-label-lg" href="#">העלאת דוח</a>
+<a class="text-on-surface-variant dark:text-surface-variant hover:text-primary hover:bg-surface-container-high transition-colors duration-200 px-3 py-2 rounded-lg font-label-lg text-label-lg" href="#">אזור אישי</a>
+<a class="text-on-surface-variant dark:text-surface-variant hover:text-primary hover:bg-surface-container-high transition-colors duration-200 px-3 py-2 rounded-lg font-label-lg text-label-lg" href="#">ניהול</a>
+</div>
+<div class="flex flex-row gap-4 text-primary dark:text-inverse-primary font-headline-sm text-headline-sm">
+<button class="hover:bg-surface-container-high transition-colors duration-200 p-2 rounded-full Active:opacity-80 Active:scale-95">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="hover:bg-surface-container-high transition-colors duration-200 p-2 rounded-full Active:opacity-80 Active:scale-95">
+<span class="material-symbols-outlined" data-icon="account_circle">account_circle</span>
+</button>
+</div>
+</div>
+</nav>
+<!-- Main Content -->
+<main class="flex-grow px-margin-mobile md:px-margin-desktop py-xl">
+<div class="max-w-5xl mx-auto">
+<!-- Header -->
+<div class="mb-lg text-center md:text-right">
+<h1 class="font-display-lg text-display-lg text-on-surface mb-xs">תוצאות ניתוח הדוח</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant">דוח מספר #7492-492-12 נותח בהצלחה על ידי המערכת החכמה שלנו.</p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-12 gap-gutter">
+<!-- Main Analytics Section (Left/Main in RTL) -->
+<div class="md:col-span-8 space-y-gutter">
+<!-- Probability Meter Card -->
+<div class="bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant p-lg relative overflow-hidden">
+<div class="absolute top-0 right-0 w-full h-2 bg-gradient-to-l from-secondary to-secondary-container"></div>
+<div class="flex flex-col md:flex-row items-center md:items-start justify-between gap-md">
+<div class="flex-1">
+<h2 class="font-headline-md text-headline-md text-on-surface mb-sm">סיכוי לביטול הדוח</h2>
+<p class="font-body-md text-body-md text-on-surface-variant mb-md">על סמך התקדימים המשפטיים וניתוח פרטי הדוח, מצאנו עילה חזקה לערעור.</p>
+<div class="bg-surface-container-low p-4 rounded-lg flex items-center gap-3">
+<span class="material-symbols-outlined text-secondary" data-icon="check_circle" data-weight="fill">check_circle</span>
+<span class="font-label-lg text-label-lg text-on-surface">מומלץ להגיש ערעור בהקדם.</span>
+</div>
+</div>
+<!-- Circular Progress -->
+<div class="relative w-32 h-32 flex-shrink-0 flex items-center justify-center">
+<svg class="w-full h-full transform -rotate-90" viewbox="0 0 36 36">
+<path class="text-surface-variant" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3"></path>
+<path class="text-secondary" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-dasharray="85, 100" stroke-linecap="round" stroke-width="3"></path>
+</svg>
+<div class="absolute inset-0 flex items-center justify-center flex-col">
+<span class="font-headline-lg text-headline-lg text-secondary">85%</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Strengths and Weaknesses Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-gutter">
+<!-- Strengths -->
+<div class="bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant p-md">
+<div class="flex items-center gap-2 mb-md">
+<div class="w-8 h-8 rounded-full bg-secondary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-on-secondary-container text-sm" data-icon="thumb_up">thumb_up</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface">נקודות חוזק בתיק</h3>
+</div>
+<ul class="space-y-3">
+<li class="flex items-start gap-2">
+<span class="material-symbols-outlined text-secondary mt-0.5" data-icon="check" data-weight="fill">check</span>
+<span class="font-body-md text-body-md text-on-surface-variant">תמרור העצירה אינו מוצב לפי התקן המחייב בטווח הראייה.</span>
+</li>
+<li class="flex items-start gap-2">
+<span class="material-symbols-outlined text-secondary mt-0.5" data-icon="check" data-weight="fill">check</span>
+<span class="font-body-md text-body-md text-on-surface-variant">כתובת העבירה הרשומה בדוח אינה תואמת את המיקום בפועל.</span>
+</li>
+<li class="flex items-start gap-2">
+<span class="material-symbols-outlined text-secondary mt-0.5" data-icon="check" data-weight="fill">check</span>
+<span class="font-body-md text-body-md text-on-surface-variant">חסרה חתימת הפקח המאשרת את נכונות הפרטים.</span>
+</li>
+</ul>
+</div>
+<!-- Weaknesses -->
+<div class="bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant p-md">
+<div class="flex items-center gap-2 mb-md">
+<div class="w-8 h-8 rounded-full bg-error-container flex items-center justify-center">
+<span class="material-symbols-outlined text-on-error-container text-sm" data-icon="warning">warning</span>
+</div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface">נקודות חולשה</h3>
+</div>
+<ul class="space-y-3">
+<li class="flex items-start gap-2">
+<span class="material-symbols-outlined text-error mt-0.5" data-icon="close" data-weight="fill">close</span>
+<span class="font-body-md text-body-md text-on-surface-variant">צילום הרכב מראה בבירור חניה באדום-לבן, גם אם התמרור פגום.</span>
+</li>
+<li class="flex items-start gap-2">
+<span class="material-symbols-outlined text-error mt-0.5" data-icon="close" data-weight="fill">close</span>
+<span class="font-body-md text-body-md text-on-surface-variant">עבר תעבורתי קודם באותה רשות מקומית עשוי להקשות על ביטול לפנים משורת הדין.</span>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<!-- Sidebar (Right in RTL) -->
+<div class="md:col-span-4 space-y-gutter">
+<!-- Missing Information -->
+<div class="bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant p-md">
+<div class="flex items-center gap-2 mb-sm">
+<span class="material-symbols-outlined text-primary" data-icon="help_center">help_center</span>
+<h3 class="font-headline-sm text-headline-sm text-on-surface">מידע חסר</h3>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant mb-md">כדי להעלות את סיכויי ההצלחה ל-95%, נדרשים לנו פרטים נוספים.</p>
+<div class="space-y-3 mb-md">
+<div class="bg-surface p-3 rounded border border-outline-variant flex items-center justify-between">
+<span class="font-label-md text-label-md text-on-surface">תמונה של תמרור החניה מהרחוב</span>
+<button class="text-primary hover:text-primary-container font-label-md text-label-md underline">העלה קובץ</button>
+</div>
+<div class="bg-surface p-3 rounded border border-outline-variant flex items-center justify-between">
+<span class="font-label-md text-label-md text-on-surface">צילום רישיון רכב</span>
+<button class="text-primary hover:text-primary-container font-label-md text-label-md underline">העלה קובץ</button>
+</div>
+</div>
+</div>
+<!-- Actions Card -->
+<div class="bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant p-md flex flex-col gap-3">
+<button class="w-full bg-primary hover:bg-primary-container text-on-primary font-label-lg text-label-lg py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2">
+<span class="material-symbols-outlined" data-icon="gavel">gavel</span>
+                            הכן כתב ערעור
+                        </button>
+<button class="w-full border border-primary text-primary hover:bg-surface-container-low font-label-lg text-label-lg py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2">
+<span class="material-symbols-outlined" data-icon="add_circle">add_circle</span>
+                            ניתוח דוח נוסף
+                        </button>
+<button class="w-full text-on-surface-variant hover:text-primary font-label-lg text-label-lg py-2 px-4 transition-colors duration-200 mt-2">
+                            חזרה לאזור האישי
+                        </button>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- Footer (Shared Component) -->
+<footer class="bg-surface-container-highest dark:bg-surface-container-low full-width bottom-0 border-t border-outline-variant mt-auto">
+<div class="flex flex-col md:flex-row-reverse justify-between items-center w-full px-margin-mobile md:px-margin-desktop py-8 gap-4">
+<div class="font-headline-sm text-headline-sm font-bold text-primary dark:text-primary-fixed">
+                TicketGuard
+            </div>
+<div class="flex flex-wrap justify-center md:justify-start gap-4">
+<!-- Navigation links from JSON -->
+<a class="text-on-surface-variant hover:text-primary hover:underline transition-colors duration-200 font-body-sm text-body-sm" href="#">תקנון תנאי שימוש</a>
+<a class="text-on-surface-variant hover:text-primary hover:underline transition-colors duration-200 font-body-sm text-body-sm" href="#">מדיניות פרטיות</a>
+<a class="text-on-surface-variant hover:text-primary hover:underline transition-colors duration-200 font-body-sm text-body-sm" href="#">צרו קשר</a>
+<a class="text-on-surface-variant hover:text-primary hover:underline transition-colors duration-200 font-body-sm text-body-sm" href="#">שאלות ותשובות</a>
+</div>
+<div class="font-body-sm text-body-sm text-on-surface dark:text-on-surface-variant text-center md:text-right">
+                כל הזכויות שמורות ל-TicketGuard © 2024. המידע אינו מהווה ייעוץ משפטי.
+            </div>
+</div>
+</footer>
+</body></html>
