@@ -1,5 +1,6 @@
 import { Route, Routes } from 'react-router-dom';
 import Layout from './components/Layout';
+import ProtectedRoute from './components/ProtectedRoute';
 import AdminReviewPage from './pages/AdminReviewPage';
 import AnalysisResultPage from './pages/AnalysisResultPage';
 import LandingPage from './pages/LandingPage';
@@ -17,8 +18,22 @@ function App() {
         <Route path="/upload" element={<UploadReportPage />} />
         <Route path="/missing-details" element={<MissingDetailsPage />} />
         <Route path="/result" element={<AnalysisResultPage />} />
-        <Route path="/dashboard" element={<UserDashboardPage />} />
-        <Route path="/admin" element={<AdminReviewPage />} />
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <UserDashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute requireAdmin>
+              <AdminReviewPage />
+            </ProtectedRoute>
+          }
+        />
         <Route path="/login" element={<LoginPage />} />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>

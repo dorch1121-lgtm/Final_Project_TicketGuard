@@ -1,10 +1,56 @@
+import { useEffect, useState } from 'react';
 import AccessBadge from '../components/AccessBadge';
 import CaseCard from '../components/CaseCard';
 import StatCard from '../components/StatCard';
+import { supabase } from '../lib/supabase';
 import { getExceptionalCasesForReview } from '../services/caseRepository';
 
+function mapAdminReview(review) {
+  const reportCase = review.report_cases ?? {};
+
+  return {
+    id: reportCase.id || review.report_case_id,
+    reason: review.reason,
+    type: reportCase.report_type || 'דוח תנועה',
+    authority: reportCase.authority || 'לא זוהה עדיין',
+    chance: reportCase.appeal_chance ?? null,
+    priority: review.priority,
+    note: review.admin_notes,
+  };
+}
+
 function AdminReviewPage() {
-  const exceptionalCases = getExceptionalCasesForReview();
+  const [exceptionalCases, setExceptionalCases] = useState(getExceptionalCasesForReview());
+
+  useEffect(() => {
+    let isActive = true;
+
+    async function loadAdminReviews() {
+      if (!supabase) {
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from('admin_reviews')
+        .select('*, report_cases(id, report_type, authority, appeal_chance)')
+        .order('created_at', { ascending: false });
+
+      if (error || !data || data.length === 0) {
+        return;
+      }
+
+      if (isActive) {
+        setExceptionalCases(data.map(mapAdminReview));
+      }
+    }
+
+    loadAdminReviews();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
   const hasExceptionalCases = exceptionalCases.length > 0;
 
   return (
@@ -43,7 +89,7 @@ function AdminReviewPage() {
 
       <section className="disclaimer-band upload-disclaimer">
         <strong>נתוני דמו</strong>
-        <p>מסך זה מציג נתוני ממשק בלבד ואינו מחובר למערכת ניהול אמיתית.</p>
+        <p>מסך זה מציג נתוני Supabase אם קיימים, ונופל לנתוני דמו אם אין נתונים זמינים.</p>
       </section>
     </section>
   );

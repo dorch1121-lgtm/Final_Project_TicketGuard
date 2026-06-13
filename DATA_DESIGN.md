@@ -1,26 +1,65 @@
-# TicketGuard - תכנון נתונים למודול 7
+# TicketGuard - Backend Data Design for Module 8
 
-## 1. הקדמה קצרה
+## 1. Purpose
 
-מסמך זה מתאר את מודל הנתונים העתידי של TicketGuard, על בסיס מסכי ה־Frontend הקיימים בפרויקט: דף נחיתה, העלאת דוח, השלמת פרטים חסרים, תוצאת ניתוח, אזור אישי, מסך ניהול וכניסה.
+This document defines the future backend data model for TicketGuard before creating the Supabase tables.
 
-בשלב הנוכחי המערכת היא Frontend בלבד ומשתמשת בנתוני דמו. מודל הנתונים במסמך זה נועד להכין את הפרויקט לשלב הבא, שבו ניתן יהיה לממש את הישויות כטבלאות אמיתיות ב־Supabase.
+TicketGuard is currently a frontend-only Hebrew RTL React app that lets users upload traffic, parking, or municipal fine PDFs, complete missing details, and receive a demo estimate of appeal success. The current app still uses demo data only. This design prepares the project for a Supabase backend without changing the React UI, CSS, routes, or existing frontend behavior.
 
-## 2. מיפוי עמודים לישויות
+## 2. Authentication and App Profiles
 
-| עמוד Frontend | ישויות שמופיעות בעמוד | הערה |
+Supabase Auth will handle the real login identity, including authentication credentials, login sessions, and the canonical `auth.users.id` value.
+
+The app-specific user record will live in the `profiles` table. A profile stores TicketGuard-specific fields such as full name, email, role, free report usage, and payment status. The `profiles.user_id` field references `auth.users(id)`.
+
+Guests are unauthenticated users and therefore do not need a `profiles` row until they register or log in. A future guest flow can allow one free report before requiring login or payment.
+
+## 3. Role Model
+
+TicketGuard must support four access levels:
+
+| Role | Meaning |
+|---|---|
+| Guest | Unauthenticated visitor. In the future, can use one free report flow. |
+| User | Authenticated customer. Can access only their own report cases, files, answers, analysis results, and payments. |
+| Admin | Internal reviewer. Can view and update only exceptional report cases that require manual review. Admins cannot manage users or create other admins. |
+| Super Admin | Project owner role. The only role allowed to invite admins, promote users to admin, demote admins, and manage role permissions. |
+
+Important role rules:
+
+- The project owner should be the only `super_admin`.
+- The SQL schema enforces this with a partial unique index that allows only one `super_admin` profile.
+- Only `super_admin` can create admin invitations.
+- Only `super_admin` can promote a user to `admin`.
+- Only `super_admin` can remove `admin` permissions.
+- Admin users can review exceptional cases only.
+- Admin users must not be able to create other admins.
+- Users must not be able to update their own role.
+- Every admin promotion or demotion must be recorded in `role_audit_logs`.
+
+In the database, `profiles.role` supports only authenticated app roles:
+
+- `user`
+- `admin`
+- `super_admin`
+
+`guest` is intentionally not stored in `profiles.role` because a guest is not authenticated through Supabase Auth.
+
+## 4. Frontend Page to Entity Mapping
+
+| Frontend page | Main backend entities | Notes |
 |---|---|---|
-| LandingPage | User, ReportCase, AnalysisResult, Payment | מציג את רעיון המערכת, דוח ראשון חינם, והכוונה להעלאת דוח. |
-| UploadReportPage | ReportCase, ReportFile, User, Payment | המשתמש מעלה קובץ PDF, והמערכת יוצרת בעתיד תיק דוח וקובץ מקושר. |
-| MissingDetailsPage | ReportCase, ExtractedReportDetails, MissingDetail, UserAnswer | מוצגים פרטים שחולצו מהדוח ושאלות להשלמת מידע חסר. |
-| AnalysisResultPage | ReportCase, AnalysisResult, AnalysisFactor, MissingDetail | מציג סיכוי ערעור, רמת סיכון, הסבר, נקודות חוזק, נקודות חולשה ומידע חסר. |
-| UserDashboardPage | User, ReportCase, AnalysisResult, Payment | מציג דוחות של משתמש, סטטוסים, ותזכורת למודל תשלום עתידי. |
-| AdminReviewPage | ReportCase, AdminReview, AnalysisResult, AnalysisFactor | מציג רק מקרים חריגים שדורשים בדיקה ידנית. |
-| LoginPage | User | מסך כניסה עתידי שיתחבר ל־Supabase Auth. |
+| LandingPage | profiles, report_cases, analysis_results, payments | Introduces the service and future free report flow. |
+| UploadReportPage | report_cases, report_files, profiles, payments | Creates a report case and stores uploaded PDF metadata. |
+| MissingDetailsPage | report_cases, extracted_report_details, missing_details, user_answers | Shows extracted details and asks for missing data. |
+| AnalysisResultPage | report_cases, analysis_results, analysis_factors, missing_details | Shows appeal chance, risk level, factors, recommendation, and disclaimer. |
+| UserDashboardPage | profiles, report_cases, analysis_results, payments | Shows only the logged-in user's report cases. |
+| AdminReviewPage | report_cases, admin_reviews, analysis_results, analysis_factors | Shows only exceptional cases that require manual review. |
+| LoginPage | Supabase Auth, profiles | Auth handles login; profiles stores app-specific user data and role. |
 
-## 3. רשימת ישויות סופית
+## 5. Final Entity List
 
-1. User
+1. Profile
 2. ReportCase
 3. ReportFile
 4. ExtractedReportDetails
@@ -30,219 +69,290 @@
 8. AnalysisFactor
 9. AdminReview
 10. Payment
+11. AdminInvitation
+12. RoleAuditLog
 
-## 4. תכונות לכל ישות
+## 6. Entity Attributes
 
-### User
+### Profile
 
-| Attribute name | Data type | Description | Is shown in UI? |
+Profiles store app-specific user data and role information. Supabase Auth stores the actual login user.
+
+| Attribute name | Data type | Description | Shown in UI? |
 |---|---|---|---|
-| id | Text | מזהה ייחודי של המשתמש | No |
-| full_name | Text | שם מלא של המשתמש | Yes |
-| email | Text | כתובת אימייל לכניסה | Yes |
-| role | Enum | סוג משתמש: Guest, User, Admin | Yes |
-| free_report_used | Boolean | האם המשתמש כבר השתמש בדוח החינמי | Yes |
-| payment_status | Enum | מצב תשלום: none, required, paid, failed | Yes |
-| created_at | Date | תאריך יצירת המשתמש | No |
-| updated_at | Date | תאריך עדכון אחרון | No |
+| id | uuid | Internal profile row id. | No |
+| user_id | uuid | References `auth.users(id)`. | No |
+| full_name | text | User's full name. | Yes |
+| email | text | User email. | Yes |
+| role | enum/text | Allowed values: `user`, `admin`, `super_admin`. | Yes, for admin surfaces |
+| free_report_used | boolean | Whether the user has already used the future free report. | Yes |
+| payment_status | enum/text | Payment state: `none`, `required`, `paid`, `failed`. | Yes |
+| created_at | timestamp | Profile creation time. | No |
+| updated_at | timestamp | Last profile update time. | No |
 
 ### ReportCase
 
-| Attribute name | Data type | Description | Is shown in UI? |
+| Attribute name | Data type | Description | Shown in UI? |
 |---|---|---|---|
-| id | Text | מזהה תיק דוח | Yes |
-| user_id | Text | מזהה המשתמש שיצר את התיק | No |
-| report_type | Text | סוג הדוח, לדוגמה דוח חניה או מצלמת מהירות | Yes |
-| authority | Text | הרשות שהפיקה את הדוח | Yes |
-| status | Enum | סטטוס התיק: uploaded, missing_details, analyzed, manual_review | Yes |
-| appeal_chance | Number | אחוז סיכוי משוער לערעור | Yes |
-| risk_level | Enum | רמת סיכון: נמוכה, בינונית, גבוהה | Yes |
-| is_exceptional | Boolean | האם התיק חריג ודורש בדיקת מנהל | Yes |
-| created_at | Date | תאריך יצירת התיק | No |
-| updated_at | Date | תאריך עדכון אחרון | No |
+| id | uuid | Report case id. | Yes |
+| user_id | uuid | Owner user id. Nullable for a future guest flow. | No |
+| report_type | text | Fine type, such as parking, traffic, or municipality. | Yes |
+| authority | text | Authority that issued the fine. | Yes |
+| status | enum/text | Case state: `uploaded`, `missing_details`, `analyzing`, `analyzed`, `manual_review`, `closed`. | Yes |
+| appeal_chance | numeric | Estimated appeal success percentage. | Yes |
+| risk_level | enum/text | Estimated risk level: `low`, `medium`, `high`. | Yes |
+| is_exceptional | boolean | Whether the case requires manual admin review. | Yes |
+| created_at | timestamp | Creation time. | No |
+| updated_at | timestamp | Last update time. | No |
 
 ### ReportFile
 
-| Attribute name | Data type | Description | Is shown in UI? |
+| Attribute name | Data type | Description | Shown in UI? |
 |---|---|---|---|
-| id | Text | מזהה קובץ | No |
-| report_case_id | Text | מזהה תיק הדוח שאליו הקובץ שייך | No |
-| file_name | Text | שם קובץ ה־PDF | Yes |
-| file_url | URL | קישור עתידי לקובץ ב־Supabase Storage | No |
-| file_type | Text | סוג הקובץ, לדוגמה application/pdf | Yes |
-| file_size | Number | גודל הקובץ בבייטים | No |
-| upload_status | Enum | סטטוס העלאה: pending, uploaded, failed | Yes |
-| created_at | Date | תאריך העלאת הקובץ | No |
+| id | uuid | File metadata id. | No |
+| report_case_id | uuid | Related report case. | No |
+| file_name | text | Uploaded PDF file name. | Yes |
+| file_url | text | Future Supabase Storage URL or path. | No |
+| file_type | text | MIME type, usually `application/pdf`. | Yes |
+| file_size | bigint | File size in bytes. | No |
+| upload_status | enum/text | `pending`, `uploaded`, or `failed`. | Yes |
+| created_at | timestamp | Upload metadata creation time. | No |
+| updated_at | timestamp | Last update time. | No |
 
 ### ExtractedReportDetails
 
-| Attribute name | Data type | Description | Is shown in UI? |
+| Attribute name | Data type | Description | Shown in UI? |
 |---|---|---|---|
-| id | Text | מזהה רשומת פרטים שחולצו | No |
-| report_case_id | Text | מזהה תיק הדוח | No |
-| report_number | Text | מספר דוח רשמי | Yes |
-| violation_date | Date | תאריך ביצוע העבירה | Yes |
-| violation_time | Text | שעת ביצוע העבירה | Yes |
-| location | Text | מיקום העבירה | Yes |
-| vehicle_number | Text | מספר רכב | Yes |
-| fine_amount | Number | סכום הקנס | Yes |
-| points | Number | נקודות תעבורה אם קיימות | Yes |
-| violation_description | Text | תיאור העבירה | Yes |
-| raw_extracted_text | Text | טקסט גולמי שחולץ מהמסמך | No |
-| confidence_score | Number | רמת ביטחון בזיהוי הנתונים | No |
-| created_at | Date | תאריך יצירת הרשומה | No |
+| id | uuid | Extracted details id. | No |
+| report_case_id | uuid | Related report case. | No |
+| report_number | text | Official fine/report number. | Yes |
+| violation_date | date | Violation date. | Yes |
+| violation_time | time | Violation time. | Yes |
+| location | text | Violation location. | Yes |
+| vehicle_number | text | Vehicle number. | Yes |
+| fine_amount | numeric | Fine amount. | Yes |
+| points | integer | Traffic points, if relevant. | Yes |
+| violation_description | text | Violation description. | Yes |
+| raw_extracted_text | text | Raw text extracted from the PDF. | No |
+| confidence_score | numeric | Extraction confidence score. | No |
+| created_at | timestamp | Creation time. | No |
+| updated_at | timestamp | Last update time. | No |
 
 ### MissingDetail
 
-| Attribute name | Data type | Description | Is shown in UI? |
+| Attribute name | Data type | Description | Shown in UI? |
 |---|---|---|---|
-| id | Text | מזהה שדה חסר | No |
-| report_case_id | Text | מזהה תיק הדוח | No |
-| field_name | Text | שם השדה החסר במערכת | Yes |
-| question_text | Text | שאלה שמוצגת למשתמש להשלמת מידע | Yes |
-| is_required | Boolean | האם השדה חובה להמשך | Yes |
-| status | Enum | סטטוס: open, answered, skipped | Yes |
-| created_at | Date | תאריך יצירת השדה החסר | No |
+| id | uuid | Missing detail id. | No |
+| report_case_id | uuid | Related report case. | No |
+| field_name | text | Missing field name. | Yes |
+| question_text | text | Question shown to the user. | Yes |
+| is_required | boolean | Whether the answer is required to continue. | Yes |
+| status | enum/text | `open`, `answered`, or `skipped`. | Yes |
+| created_at | timestamp | Creation time. | No |
+| updated_at | timestamp | Last update time. | No |
 
 ### UserAnswer
 
-| Attribute name | Data type | Description | Is shown in UI? |
+| Attribute name | Data type | Description | Shown in UI? |
 |---|---|---|---|
-| id | Text | מזהה תשובה | No |
-| missing_detail_id | Text | מזהה השדה החסר | No |
-| report_case_id | Text | מזהה תיק הדוח | No |
-| user_id | Text | מזהה המשתמש שענה | No |
-| answer_value | Text | תשובת המשתמש | Yes |
-| created_at | Date | תאריך יצירת התשובה | No |
+| id | uuid | Answer id. | No |
+| missing_detail_id | uuid | Related missing detail. | No |
+| report_case_id | uuid | Related report case. | No |
+| user_id | uuid | User who answered. Nullable for a future guest flow. | No |
+| answer_value | text | User answer. | Yes |
+| created_at | timestamp | Creation time. | No |
+| updated_at | timestamp | Last update time. | No |
 
 ### AnalysisResult
 
-| Attribute name | Data type | Description | Is shown in UI? |
+| Attribute name | Data type | Description | Shown in UI? |
 |---|---|---|---|
-| id | Text | מזהה תוצאת ניתוח | No |
-| report_case_id | Text | מזהה תיק הדוח | No |
-| chance_percentage | Number | אחוז סיכוי ערעור משוער | Yes |
-| risk_level | Enum | רמת סיכון משוערת | Yes |
-| explanation | Text | הסבר כללי על הניתוח | Yes |
-| recommendation | Text | המלצה כללית למשתמש | Yes |
-| legal_disclaimer | Text | הבהרה משפטית | Yes |
-| created_at | Date | תאריך יצירת התוצאה | No |
+| id | uuid | Analysis result id. | No |
+| report_case_id | uuid | Related report case. | No |
+| chance_percentage | numeric | Estimated appeal success chance. | Yes |
+| risk_level | enum/text | Estimated risk level: `low`, `medium`, `high`. | Yes |
+| explanation | text | General explanation of the analysis. | Yes |
+| recommendation | text | User-facing recommendation. | Yes |
+| legal_disclaimer | text | Legal disclaimer. | Yes |
+| created_at | timestamp | Creation time. | No |
+| updated_at | timestamp | Last update time. | No |
 
 ### AnalysisFactor
 
-| Attribute name | Data type | Description | Is shown in UI? |
+| Attribute name | Data type | Description | Shown in UI? |
 |---|---|---|---|
-| id | Text | מזהה גורם ניתוח | No |
-| analysis_result_id | Text | מזהה תוצאת הניתוח | No |
-| factor_type | Enum | סוג גורם: strong_point, weak_point, missing_info | Yes |
-| title | Text | כותרת הגורם | Yes |
-| description | Text | פירוט הגורם | Yes |
-| impact_score | Number | משקל השפעה על הסיכוי | No |
-| created_at | Date | תאריך יצירת הגורם | No |
+| id | uuid | Analysis factor id. | No |
+| analysis_result_id | uuid | Related analysis result. | No |
+| factor_type | enum/text | `strong_point`, `weak_point`, or `missing_info`. | Yes |
+| title | text | Factor title. | Yes |
+| description | text | Factor explanation. | Yes |
+| impact_score | numeric | Estimated impact on appeal chance. | No |
+| created_at | timestamp | Creation time. | No |
 
 ### AdminReview
 
-| Attribute name | Data type | Description | Is shown in UI? |
+Admins can read and update only exceptional cases that require manual review. Their update scope should be limited to review status, notes, and reviewer metadata.
+
+| Attribute name | Data type | Description | Shown in UI? |
 |---|---|---|---|
-| id | Text | מזהה בדיקה ידנית | No |
-| report_case_id | Text | מזהה תיק הדוח החריג | Yes |
-| reason | Text | סיבת החריגה | Yes |
-| priority | Enum | עדיפות: נמוכה, בינונית, גבוהה | Yes |
-| status | Enum | סטטוס בדיקה: pending, in_review, resolved | Yes |
-| admin_notes | Text | הערות מנהל | Yes |
-| reviewed_by | Text | מזהה מנהל שבדק | No |
-| created_at | Date | תאריך יצירת הבדיקה | No |
-| updated_at | Date | תאריך עדכון אחרון | No |
+| id | uuid | Admin review id. | No |
+| report_case_id | uuid | Exceptional report case id. | Yes |
+| reason | text | Reason the case requires review. | Yes |
+| priority | enum/text | `low`, `medium`, `high`, or `urgent`. | Yes |
+| status | enum/text | `pending`, `in_review`, or `resolved`. | Yes |
+| admin_notes | text | Admin review notes. | Yes |
+| reviewed_by | uuid | Reviewing admin user id. | No |
+| created_at | timestamp | Creation time. | No |
+| updated_at | timestamp | Last update time. | No |
 
 ### Payment
 
-| Attribute name | Data type | Description | Is shown in UI? |
+| Attribute name | Data type | Description | Shown in UI? |
 |---|---|---|---|
-| id | Text | מזהה תשלום | No |
-| user_id | Text | מזהה המשתמש ששילם | No |
-| amount | Number | סכום התשלום | Yes |
-| currency | Text | מטבע, לדוגמה ILS | Yes |
-| payment_status | Enum | סטטוס: pending, paid, failed, refunded | Yes |
-| provider | Text | ספק תשלום עתידי | No |
-| provider_transaction_id | Text | מזהה עסקה אצל ספק התשלום | No |
-| paid_at | Date | תאריך תשלום בפועל | Yes |
-| created_at | Date | תאריך יצירת רשומת התשלום | No |
+| id | uuid | Payment id. | No |
+| user_id | uuid | Paying user id. | No |
+| report_case_id | uuid | Optional related report case. | No |
+| amount | numeric | Payment amount. | Yes |
+| currency | text | Currency, such as `ILS`. | Yes |
+| payment_status | enum/text | `pending`, `paid`, `failed`, or `refunded`. | Yes |
+| provider | text | Future payment provider. | No |
+| provider_transaction_id | text | Provider transaction id. | No |
+| paid_at | timestamp | Actual payment time. | Yes |
+| created_at | timestamp | Creation time. | No |
+| updated_at | timestamp | Last update time. | No |
 
-## 5. קשרים בין ישויות
+### AdminInvitation
 
-| Entity A | Relationship type | Entity B | Explanation | Junction table if needed |
-|---|---|---|---|---|
-| User | One-to-Many | ReportCase | משתמש יכול ליצור כמה תיקי דוחות | לא נדרש |
-| ReportCase | One-to-One | ReportFile | לכל תיק יש קובץ PDF עיקרי אחד בשלב הראשון | לא נדרש |
-| ReportCase | One-to-One | ExtractedReportDetails | לכל תיק יש רשומת פרטים שחולצה מהמסמך | לא נדרש |
-| ReportCase | One-to-Many | MissingDetail | תיק יכול להכיל כמה פרטים חסרים | לא נדרש |
-| MissingDetail | One-to-Many | UserAnswer | שדה חסר יכול לקבל תשובות, למשל במקרה של עדכון חוזר | לא נדרש |
-| User | One-to-Many | UserAnswer | משתמש יכול לענות על כמה שאלות השלמה | לא נדרש |
-| ReportCase | One-to-One | AnalysisResult | לכל תיק יש תוצאת ניתוח אחת אחרונה | לא נדרש |
-| AnalysisResult | One-to-Many | AnalysisFactor | תוצאת ניתוח כוללת נקודות חוזק, חולשה ומידע חסר | לא נדרש |
-| ReportCase | One-to-One | AdminReview | רק תיק חריג מקבל רשומת בדיקת מנהל | לא נדרש |
-| User | One-to-Many | Payment | משתמש יכול לבצע כמה תשלומים לאורך זמן | לא נדרש |
+Admin invitations support inviting an existing or future user to become an admin.
 
-## 6. מטריצת CRUD
+Only `super_admin` can create admin invitations. `role_to_grant` is intentionally limited to `admin`; invitations must not create additional super admins.
+
+| Attribute name | Data type | Description | Shown in UI? |
+|---|---|---|---|
+| id | uuid | Invitation id. | No |
+| email | text | Email address invited to become admin. | Yes |
+| invited_by | uuid | Super admin user id that created the invitation. | No |
+| role_to_grant | enum/text | Allowed value: `admin`. | Yes |
+| status | enum/text | `pending`, `accepted`, `expired`, or `revoked`. | Yes |
+| token_hash | text | Hashed invitation token. Never store the raw token. | No |
+| expires_at | timestamp | Invitation expiration time. | Yes |
+| accepted_at | timestamp | Time the invitation was accepted. | Yes |
+| created_at | timestamp | Creation time. | No |
+
+### RoleAuditLog
+
+Role audit logs track role changes for accountability.
+
+Every admin promotion or demotion should create a row in this table.
+
+| Attribute name | Data type | Description | Shown in UI? |
+|---|---|---|---|
+| id | uuid | Audit log id. | No |
+| actor_user_id | uuid | Super admin who performed the role change. | No |
+| target_user_id | uuid | User whose role changed. | No |
+| old_role | enum/text | Previous role. | Yes, for owner/admin audit screens |
+| new_role | enum/text | New role. | Yes, for owner/admin audit screens |
+| action | text | Action name, such as `promote_admin` or `demote_admin`. | Yes, for owner/admin audit screens |
+| created_at | timestamp | Audit event time. | No |
+
+## 7. Relationships
+
+| Entity A | Relationship type | Entity B | Explanation |
+|---|---|---|---|
+| Supabase Auth User | One-to-One | Profile | Each authenticated user can have one app profile. |
+| Profile | One-to-Many | ReportCase | A user can create many report cases. |
+| ReportCase | One-to-One | ReportFile | A report case currently has one main PDF file. |
+| ReportCase | One-to-One | ExtractedReportDetails | A report case has one extracted details record. |
+| ReportCase | One-to-Many | MissingDetail | A report case can require several missing details. |
+| MissingDetail | One-to-Many | UserAnswer | A missing detail can receive answers or updates. |
+| Profile | One-to-Many | UserAnswer | A user can submit many answers. |
+| ReportCase | One-to-One | AnalysisResult | A report case has one latest analysis result. |
+| AnalysisResult | One-to-Many | AnalysisFactor | An analysis contains several factors. |
+| ReportCase | One-to-Zero-or-One | AdminReview | Only exceptional cases require an admin review. |
+| Profile | One-to-Many | Payment | A user can make many payments. |
+| Profile | One-to-Many | AdminInvitation through `invited_by` | A super admin can create many admin invitations. |
+| Profile | One-to-Many | RoleAuditLog as `actor_user_id` | A super admin can perform many role changes. |
+| Profile | One-to-Many | RoleAuditLog as `target_user_id` | A user can be the target of many role changes. |
+
+## 8. CRUD Matrix
 
 | Entity | Create | Read | Update | Delete |
 |---|---|---|---|---|
-| User | נוצר בעת הרשמה או דרך Auth עתידי | המשתמש רואה את עצמו, Admin לפי צורך | משתמש מעדכן פרופיל, System מעדכן סטטוס | מחיקה רכה בלבד על ידי Admin/System |
-| ReportCase | Guest/User יוצר בעת העלאת דוח | User רואה תיקים שלו, Admin רואה חריגים | System מעדכן סטטוס וסיכוי, Admin מעדכן בדיקה | מחיקה רכה בלבד |
-| ReportFile | User/System יוצרים בעת העלאת PDF | User רואה קובץ שלו, System קורא לניתוח | System מעדכן סטטוס העלאה | מחיקה רכה או מחיקה מ־Storage לפי מדיניות |
-| ExtractedReportDetails | System יוצר אחרי OCR/AI | User רואה פרטים של תיק שלו | System מעדכן אם הופק ניתוח מחדש | לא נמחק בדרך כלל |
-| MissingDetail | System יוצר לפי פרטים חסרים | User/Admin/System קוראים לפי הרשאות | System/User מעדכנים סטטוס לאחר תשובה | לא נמחק בדרך כלל |
-| UserAnswer | User יוצר תשובה | User רואה תשובות שלו, System קורא לניתוח | User יכול לעדכן לפני ניתוח סופי | מחיקה רכה בלבד |
-| AnalysisResult | System יוצר לאחר ניתוח | User רואה תוצאה שלו, Admin רואה חריגים | System יכול לעדכן בניתוח חוזר | לא נמחק בדרך כלל |
-| AnalysisFactor | System יוצר כחלק מהניתוח | User/Admin קוראים לפי הרשאות | System מעדכן בניתוח חוזר | לא נמחק בדרך כלל |
-| AdminReview | System יוצר לתיקים חריגים | Admin קורא מקרים חריגים | Admin מעדכן סטטוס והערות | מחיקה רכה בלבד |
-| Payment | System/Provider יוצר לאחר תשלום | User רואה סטטוס שלו, Admin לפי צורך | System/Provider מעדכן סטטוס | אין מחיקה ידנית של עסקה |
+| Profile | System after Supabase Auth signup | User reads self; Super Admin can read for role management; Admin only if required for assigned exceptional review context | User can update own profile fields but not role; System can update free report/payment fields; only Super Admin can promote/demote admin roles | System or owner process only; no normal manual delete |
+| ReportCase | Guest/User/System during report upload | Guest reads only current guest flow result; User reads only own cases; Admin reads only exceptional cases; Super Admin can read for oversight | System updates analysis/status/exception flags; Admin updates only review-related status/notes through AdminReview | System or owner process only |
+| ReportFile | Guest/User/System during PDF upload | Owner user reads own file metadata; Admin reads only files for exceptional cases if required; System reads for analysis | System updates upload status and storage URL/path | System or owner process only |
+| ExtractedReportDetails | System after OCR/AI extraction | Owner user reads own details; Admin reads only exceptional cases; System reads for analysis | System updates after re-processing | System only |
+| MissingDetail | System when extraction finds missing data | Owner user reads own missing details; Admin reads only exceptional cases | User can answer related prompts; System updates missing detail status | System only |
+| UserAnswer | User/Guest submits answers | Owner user reads own answers; Admin reads only exceptional cases; System reads for analysis | User can update before final analysis; System can normalize values | System or owner process only |
+| AnalysisResult | System creates after analysis | Guest/User reads allowed result; Admin reads only exceptional cases; System reads all | System updates after re-analysis | System only |
+| AnalysisFactor | System creates with analysis | Guest/User/Admin read according to related case permissions | System updates after re-analysis | System only |
+| AdminReview | System creates for exceptional cases | Admin reads only exceptional cases requiring manual review; Super Admin can read for oversight | Admin updates only admin review status/notes/reviewer fields; System can auto-close if needed | System or Super Admin only |
+| Payment | System/payment provider creates | User reads own payments; Super Admin or support process reads if needed | System/payment provider updates status | System only; keep records for audit |
+| AdminInvitation | Only Super Admin | Super Admin reads invitations; invited user may validate a pending invite by token flow | Super Admin can revoke; System can mark accepted/expired | Super Admin/System only |
+| RoleAuditLog | System creates when Super Admin changes a role | Super Admin reads audit history | Immutable after creation | No manual delete |
 
-## 7. דיאגרמת ERD
+Additional permission requirements:
+
+- User cannot update their own role.
+- Admin cannot update roles.
+- Admin cannot create admin invitations.
+- Admin cannot promote or demote any user.
+- Only Super Admin can create admin invitations.
+- Only Super Admin can promote users to admin or demote admins back to user.
+- System can create analysis results and set admin review flags.
+- Admin can read and update only admin review status/notes for exceptional cases.
+
+## 9. ERD
 
 ```mermaid
 erDiagram
-  USER {
-    text id PK
+  AUTH_USER {
+    uuid id PK
+  }
+
+  PROFILE {
+    uuid id PK
+    uuid user_id FK
     text full_name
     text email
     enum role
     boolean free_report_used
     enum payment_status
-    date created_at
-    date updated_at
+    timestamp created_at
+    timestamp updated_at
   }
 
   REPORT_CASE {
-    text id PK
-    text user_id FK
+    uuid id PK
+    uuid user_id FK
     text report_type
     text authority
     enum status
     number appeal_chance
     enum risk_level
     boolean is_exceptional
-    date created_at
-    date updated_at
+    timestamp created_at
+    timestamp updated_at
   }
 
   REPORT_FILE {
-    text id PK
-    text report_case_id FK
+    uuid id PK
+    uuid report_case_id FK
     text file_name
-    url file_url
+    text file_url
     text file_type
     number file_size
     enum upload_status
-    date created_at
+    timestamp created_at
+    timestamp updated_at
   }
 
   EXTRACTED_REPORT_DETAILS {
-    text id PK
-    text report_case_id FK
+    uuid id PK
+    uuid report_case_id FK
     text report_number
     date violation_date
-    text violation_time
+    time violation_time
     text location
     text vehicle_number
     number fine_amount
@@ -250,156 +360,141 @@ erDiagram
     text violation_description
     text raw_extracted_text
     number confidence_score
-    date created_at
+    timestamp created_at
+    timestamp updated_at
   }
 
   MISSING_DETAIL {
-    text id PK
-    text report_case_id FK
+    uuid id PK
+    uuid report_case_id FK
     text field_name
     text question_text
     boolean is_required
     enum status
-    date created_at
+    timestamp created_at
+    timestamp updated_at
   }
 
   USER_ANSWER {
-    text id PK
-    text missing_detail_id FK
-    text report_case_id FK
-    text user_id FK
+    uuid id PK
+    uuid missing_detail_id FK
+    uuid report_case_id FK
+    uuid user_id FK
     text answer_value
-    date created_at
+    timestamp created_at
+    timestamp updated_at
   }
 
   ANALYSIS_RESULT {
-    text id PK
-    text report_case_id FK
+    uuid id PK
+    uuid report_case_id FK
     number chance_percentage
     enum risk_level
     text explanation
     text recommendation
     text legal_disclaimer
-    date created_at
+    timestamp created_at
+    timestamp updated_at
   }
 
   ANALYSIS_FACTOR {
-    text id PK
-    text analysis_result_id FK
+    uuid id PK
+    uuid analysis_result_id FK
     enum factor_type
     text title
     text description
     number impact_score
-    date created_at
+    timestamp created_at
   }
 
   ADMIN_REVIEW {
-    text id PK
-    text report_case_id FK
+    uuid id PK
+    uuid report_case_id FK
     text reason
     enum priority
     enum status
     text admin_notes
-    text reviewed_by FK
-    date created_at
-    date updated_at
+    uuid reviewed_by FK
+    timestamp created_at
+    timestamp updated_at
   }
 
   PAYMENT {
-    text id PK
-    text user_id FK
+    uuid id PK
+    uuid user_id FK
+    uuid report_case_id FK
     number amount
     text currency
     enum payment_status
     text provider
     text provider_transaction_id
-    date paid_at
-    date created_at
+    timestamp paid_at
+    timestamp created_at
+    timestamp updated_at
   }
 
-  USER ||--o{ REPORT_CASE : creates
+  ADMIN_INVITATION {
+    uuid id PK
+    text email
+    uuid invited_by FK
+    enum role_to_grant
+    enum status
+    text token_hash
+    timestamp expires_at
+    timestamp accepted_at
+    timestamp created_at
+  }
+
+  ROLE_AUDIT_LOG {
+    uuid id PK
+    uuid actor_user_id FK
+    uuid target_user_id FK
+    enum old_role
+    enum new_role
+    text action
+    timestamp created_at
+  }
+
+  AUTH_USER ||--o| PROFILE : authenticates
+  PROFILE ||--o{ REPORT_CASE : owns
   REPORT_CASE ||--|| REPORT_FILE : has
   REPORT_CASE ||--|| EXTRACTED_REPORT_DETAILS : has
   REPORT_CASE ||--o{ MISSING_DETAIL : requires
   MISSING_DETAIL ||--o{ USER_ANSWER : receives
-  USER ||--o{ USER_ANSWER : submits
+  PROFILE ||--o{ USER_ANSWER : submits
   REPORT_CASE ||--|| ANALYSIS_RESULT : produces
   ANALYSIS_RESULT ||--o{ ANALYSIS_FACTOR : includes
   REPORT_CASE ||--o| ADMIN_REVIEW : may_require
-  USER ||--o{ PAYMENT : makes
+  PROFILE ||--o{ PAYMENT : makes
+  REPORT_CASE ||--o{ PAYMENT : may_have
+  PROFILE ||--o{ ADMIN_INVITATION : invites
+  PROFILE ||--o{ ROLE_AUDIT_LOG : acts
+  PROFILE ||--o{ ROLE_AUDIT_LOG : target
 ```
 
-## 8. הרשאות לפי תפקידים
+## 10. Supabase Implementation Notes
 
-ההרשאות הבאות מתארות את ההתנהגות העתידית הרצויה. בשלב הנוכחי אין Backend ואין אכיפת הרשאות אמיתית, אך המודל מכין את המערכת ל־Supabase Row Level Security במודול הבא.
+Module 8 can implement this model in Supabase using the new `SUPABASE_SCHEMA.sql` file in the project root.
 
-| Entity | Action | Who is allowed? | Explanation |
-|---|---|---|---|
-| User | Create | Guest, System | אורח יוכל להירשם בעתיד; Supabase Auth ייצור משתמש אמיתי. |
-| User | Read | User, Admin, System | User רואה רק את עצמו; Admin לפי צורך ניהולי. |
-| User | Update | User, System | User יעדכן פרופיל; System יעדכן סטטוס דוח חינם ותשלום. |
-| User | Delete | Admin, System | מחיקה רכה בלבד, לא מחיקה פיזית מיידית. |
-| ReportCase | Create | Guest, User, System | Guest יוכל ליצור דוח חינמי אחד; User יוכל ליצור תיקים לאחר התחברות. |
-| ReportCase | Read | Guest, User, Admin, System | Guest רואה רק את תוצאת הדוח החינמי שהעלה; User רואה רק תיקים שלו; Admin רואה חריגים בלבד. |
-| ReportCase | Update | System, Admin | System מעדכן סטטוס וניתוח; Admin מעדכן רק בהקשר בדיקה ידנית. |
-| ReportCase | Delete | Admin, System | מחיקה רכה בלבד. |
-| ReportFile | Create | Guest, User, System | העלאת PDF לתיק של המשתמש בלבד. |
-| ReportFile | Read | Guest, User, System | משתמש רואה רק קבצים של התיקים שלו; System קורא לניתוח. |
-| ReportFile | Update | System | עדכון סטטוס העלאה או URL לאחר שמירה ב־Storage. |
-| ReportFile | Delete | System, Admin | מחיקה לפי מדיניות שמירת קבצים. |
-| ExtractedReportDetails | Create | System | נוצר על ידי OCR/AI עתידי בלבד. |
-| ExtractedReportDetails | Read | User, Admin, System | User רואה פרטים של תיק שלו; Admin רואה רק אם התיק חריג. |
-| ExtractedReportDetails | Update | System | עדכון רק לאחר ניתוח מחדש. |
-| ExtractedReportDetails | Delete | System | לא נמחק בדרך כלל, אלא אם נמחק תיק שלם. |
-| MissingDetail | Create | System | System יוצר שאלות על מידע חסר. |
-| MissingDetail | Read | User, Admin, System | User רואה שאלות של הדוח שלו; Admin רואה בתיקים חריגים. |
-| MissingDetail | Update | User, System | User יכול להשלים תשובה; System מעדכן סטטוס השדה. |
-| MissingDetail | Delete | System | לא נמחק בדרך כלל. |
-| UserAnswer | Create | User, Guest | User או Guest עונה רק על שאלות ששייכות לתיק שלו. |
-| UserAnswer | Read | User, Admin, System | User רואה תשובות שלו; Admin רק בתיקים חריגים. |
-| UserAnswer | Update | User, System | User יכול לעדכן לפני ניתוח סופי; System יכול לנרמל ערכים. |
-| UserAnswer | Delete | User, System | מחיקה רכה או החלפת תשובה לפני ניתוח. |
-| AnalysisResult | Create | System | משתמש לא יוצר תוצאה ידנית. |
-| AnalysisResult | Read | Guest, User, Admin, System | Guest רואה רק תוצאת הדוח החינמי הנוכחי; User רואה תוצאות שלו; Admin רואה חריגים. |
-| AnalysisResult | Update | System | User לא יכול לערוך תוצאת AI ישירות. |
-| AnalysisResult | Delete | System | לא נמחק בדרך כלל. |
-| AnalysisFactor | Create | System | נוצר כחלק מתוצאת הניתוח. |
-| AnalysisFactor | Read | Guest, User, Admin, System | מוצג יחד עם תוצאת הניתוח בהתאם להרשאות. |
-| AnalysisFactor | Update | System | עדכון רק בניתוח חוזר. |
-| AnalysisFactor | Delete | System | לא נמחק בדרך כלל. |
-| AdminReview | Create | System | System יוצר דגל בדיקה ידנית לתיקים חריגים. |
-| AdminReview | Read | Admin, System | Admin רואה רק מקרים חריגים לבדיקה. |
-| AdminReview | Update | Admin, System | Admin מעדכן סטטוס והערות; System יכול לסגור אוטומטית לפי כללים. |
-| AdminReview | Delete | System | מחיקה רכה בלבד. |
-| Payment | Create | System | נוצר דרך ספק תשלום עתידי לאחר הדוח החינמי. |
-| Payment | Read | User, Admin, System | User רואה סטטוס תשלום שלו; Admin לפי צורך תמיכה. |
-| Payment | Update | System | נתוני עסקה לא נערכים ידנית על ידי User או Admin. |
-| Payment | Delete | System | אין מחיקה ידנית של עסקאות; שמירה לצורכי ביקורת. |
+Technical notes for the backend stage:
 
-## 9. הערות לקראת מודול 8 - Backend Development
+- Supabase Auth should remain the source of truth for login users.
+- `profiles.user_id` should reference `auth.users(id)`.
+- Row Level Security should be added later, after the schema exists and the access rules are tested.
+- RLS policies should enforce that users can access only their own cases.
+- RLS policies should enforce that admins can access only exceptional cases.
+- RLS policies should enforce that only the super admin can manage admin invitations and role changes.
+- Admin invitation tokens must be hashed before storage.
+- Role changes should be performed through a trusted server-side function or Edge Function so the audit log is always written.
+- The current frontend remains demo-only until Supabase is connected in a later step.
 
-במודול 8 ניתן להפוך את מודל הנתונים במסמך זה לטבלאות אמיתיות ב־Supabase.
+## 11. Module 8 Checklist
 
-החלקים הטכניים העתידיים:
-
-- Supabase Auth לניהול משתמשים, הרשמה וכניסה.
-- טבלאות Supabase PostgreSQL לפי הישויות במסמך זה.
-- Supabase Storage לשמירת קבצי PDF שהמשתמש מעלה.
-- Row Level Security כדי שמשתמשים יוכלו לגשת רק לנתונים שלהם.
-- הרשאות Admin בלבד למקרים חריגים שדורשים בדיקה ידנית.
-- Edge Function או API endpoint עתידי לניתוח AI/OCR של הדוחות.
-- אינטגרציה עתידית לספק תשלום עבור תשלום חד־פעמי אחרי הדוח החינמי הראשון.
-
-ה־Frontend הנוכחי עדיין משתמש בנתוני דמו בלבד. המסמך הזה מכין את מבנה הנתונים לשלב הפיתוח הבא, בלי לחבר עדיין Backend אמיתי.
-
-## 10. צ׳קליסט מודול 7
-
-- [x] כל עמוד ב־Frontend נסרק ומופה לישויות
-- [x] קיימת רשימת ישויות מסכמת ללא כפילויות
-- [x] לכל ישות הוגדרו תכונות וסוגי נתונים
-- [x] נכללו שדות נסתרים כמו id, created_at, updated_at ו־user_id / foreign keys
-- [x] הקשרים בין הישויות מופו
-- [x] מטריצת CRUD הוגדרה לכל הישויות
-- [x] קיימת דיאגרמת ERD ב־Mermaid
-- [x] הוגדרו הרשאות לפי תפקידים
-- [x] המודל מתאים להמשך עבודה עם Supabase במודול 8
+- [x] Core app entities are mapped to future Supabase tables.
+- [x] Role model includes Guest, User, Admin, and Super Admin.
+- [x] Profiles store app-specific role and user data.
+- [x] Admin invitations are modeled.
+- [x] Role audit logs are modeled.
+- [x] Relationships include admin invitation and role audit ownership.
+- [x] CRUD matrix includes role-management restrictions.
+- [x] SQL schema file is prepared without RLS policies.
