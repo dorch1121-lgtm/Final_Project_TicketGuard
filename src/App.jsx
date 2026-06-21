@@ -1,4 +1,5 @@
 import { Route, Routes } from 'react-router-dom';
+import AppLayout from './components/AppLayout';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminReviewPage from './pages/AdminReviewPage';
@@ -12,12 +13,19 @@ import UserDashboardPage from './pages/UserDashboardPage';
 
 function App() {
   return (
-    <Layout>
-      <Routes>
+    <Routes>
+      {/* Public pages — Navbar + Footer shell */}
+      <Route element={<Layout />}>
         <Route path="/" element={<LandingPage />} />
         <Route path="/upload" element={<UploadReportPage />} />
         <Route path="/missing-details" element={<MissingDetailsPage />} />
         <Route path="/result" element={<AnalysisResultPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="*" element={<NotFoundPage />} />
+      </Route>
+
+      {/* Authenticated pages — Sidebar + TopBar shell */}
+      <Route element={<AppLayout />}>
         <Route
           path="/dashboard"
           element={
@@ -34,10 +42,8 @@ function App() {
             </ProtectedRoute>
           }
         />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="*" element={<NotFoundPage />} />
-      </Routes>
-    </Layout>
+      </Route>
+    </Routes>
   );
 }
 

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import AccessBadge from '../components/AccessBadge';
+import Icon from '../components/Icon';
 import UploadBox from '../components/UploadBox';
 import { legalDisclaimer } from '../data/mockData';
 import { getCurrentUser } from '../lib/auth';
@@ -10,21 +10,26 @@ import {
   reportUploadErrors,
 } from '../lib/reportService';
 
+const processSteps = [
+  { label: 'העלאת קובץ' },
+  { label: 'בדיקה ראשונית' },
+  { label: 'מעקב באזור האישי' },
+];
+
 function UploadReportPage() {
   const navigate = useNavigate();
-  const [user, setUser] = useState(null);
+  const [user, setUser]                     = useState(null);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
-  const [fileName, setFileName] = useState('');
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
+  const [fileName, setFileName]             = useState('');
+  const [selectedFile, setSelectedFile]     = useState(null);
+  const [isLoading, setIsLoading]           = useState(false);
+  const [errorMessage, setErrorMessage]     = useState('');
 
   useEffect(() => {
     let isActive = true;
 
     async function loadUser() {
       const { data } = await getCurrentUser();
-
       if (isActive) {
         setUser(data?.user ?? null);
         setIsCheckingAuth(false);
@@ -32,25 +37,13 @@ function UploadReportPage() {
     }
 
     loadUser();
-
-    return () => {
-      isActive = false;
-    };
+    return () => { isActive = false; };
   }, []);
 
   const validateFile = (nextFile) => {
-    if (!nextFile) {
-      return reportUploadErrors.noFile;
-    }
-
-    if (nextFile.type !== 'application/pdf') {
-      return reportUploadErrors.invalidType;
-    }
-
-    if (nextFile.size > 10 * 1024 * 1024) {
-      return reportUploadErrors.fileTooLarge;
-    }
-
+    if (!nextFile) return reportUploadErrors.noFile;
+    if (nextFile.type !== 'application/pdf') return reportUploadErrors.invalidType;
+    if (nextFile.size > 10 * 1024 * 1024) return reportUploadErrors.fileTooLarge;
     return '';
   };
 
@@ -81,7 +74,7 @@ function UploadReportPage() {
     }
 
     if (!user) {
-      setErrorMessage('כדי להעלות דוח אמיתי יש להתחבר למערכת');
+      setErrorMessage('כדי להעלות דוח יש להתחבר למערכת');
       return;
     }
 
@@ -110,46 +103,92 @@ function UploadReportPage() {
     }
   };
 
+  const currentStep = isLoading ? 1 : fileName ? 0 : 0;
+
   return (
-    <section className="page upload-page container">
-      <div>
+    <section className="upload-page container">
+      <div className="upload-page-inner">
+        {/* Header */}
         <div className="page-heading centered">
-          <AccessBadge label="מסך ציבורי - דוח ראשון חינם" />
+          <span className="eyebrow">
+            <Icon name="upload_file" />
+            העלאת דוח לבדיקה
+          </span>
+          <h1>בדיקת דוח תנועה</h1>
+          <p>העלו קובץ PDF של הדוח לקבלת הערכת סיכויים מהירה.</p>
         </div>
 
-        {!isCheckingAuth && !user ? (
-          <section className="upload-panel card">
-            <div className="upload-panel-header">
-              <h1>העלאת דוח לבדיקה</h1>
-              <p>כדי להעלות דוח אמיתי יש להתחבר למערכת</p>
+        {/* Process steps */}
+        <div className="upload-steps">
+          {processSteps.map((step, i) => (
+            <div key={step.label} className={`upload-step${i === currentStep ? ' active' : ''}`}>
+              <div className="upload-step-num">{i + 1}</div>
+              <span>{step.label}</span>
             </div>
-            <button className="button button-primary upload-analyze-button" type="button" onClick={() => navigate('/login')}>
-              מעבר להתחברות
-            </button>
-          </section>
+          ))}
+        </div>
+
+        {/* Upload card */}
+        {!isCheckingAuth && !user ? (
+          <div className="card upload-panel">
+            <div className="upload-panel-header">
+              <h2 style={{ marginBottom: '0.5rem' }}>נדרשת התחברות</h2>
+              <p>כדי להעלות דוח ולשמור את הניתוח באזור האישי שלך, יש להתחבר תחילה.</p>
+            </div>
+            <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+              <button
+                className="button button-primary"
+                type="button"
+                onClick={() => navigate('/login')}
+              >
+                <Icon name="login" />
+                כניסה לחשבון
+              </button>
+              <button
+                className="button button-secondary"
+                type="button"
+                onClick={() => navigate('/login')}
+              >
+                <Icon name="person_add" />
+                הרשמה חינם
+              </button>
+            </div>
+          </div>
         ) : (
-          <UploadBox
-            fileName={fileName}
-            isLoading={isLoading || isCheckingAuth}
-            errorMessage={errorMessage}
-            onFileChange={handleFileChange}
-            onAnalyze={handleAnalyze}
-          />
+          <div className="card upload-panel">
+            <UploadBox
+              fileName={fileName}
+              isLoading={isLoading || isCheckingAuth}
+              errorMessage={errorMessage}
+              onFileChange={handleFileChange}
+              onAnalyze={handleAnalyze}
+            />
+          </div>
         )}
 
-        {isLoading ? (
-          <div className="analysis-loader card" role="status" aria-live="polite">
+        {/* Loading indicator */}
+        {isLoading && (
+          <div className="card analysis-loader" role="status" aria-live="polite">
+            <div className="loader-dots">
+              <span /><span /><span />
+            </div>
+            <p>
+              <strong>מעבד את הקובץ...</strong>
+            </p>
             <div className="loader-bar">
               <span />
             </div>
-            <p>מעלה את הקובץ ויוצר ניתוח דמו. לא מתבצע OCR או AI אמיתי בשלב זה.</p>
+            <p style={{ fontSize: '0.8125rem' }}>
+              מעלה קובץ ויוצר ניתוח דמו. לא מתבצע OCR או AI אמיתי בשלב זה.
+            </p>
           </div>
-        ) : null}
+        )}
 
-        <section className="disclaimer-band upload-disclaimer">
+        {/* Legal */}
+        <div className="disclaimer-band">
           <strong>הבהרה</strong>
-          <p>{legalDisclaimer}</p>
-        </section>
+          <p style={{ marginBottom: 0, fontSize: '0.875rem' }}>{legalDisclaimer}</p>
+        </div>
       </div>
     </section>
   );

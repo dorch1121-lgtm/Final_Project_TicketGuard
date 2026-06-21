@@ -3,11 +3,6 @@ import { signOut } from '../lib/auth';
 import useAuthProfile from '../lib/useAuthProfile';
 import Icon from './Icon';
 
-const publicNavItems = [
-  { to: '/', label: 'דף הבית', end: true },
-  { to: '/upload', label: 'העלאת דוח' },
-];
-
 function Navbar() {
   const navigate = useNavigate();
   const { loading, user, isAdmin } = useAuthProfile();
@@ -19,17 +14,21 @@ function Navbar() {
 
   return (
     <header className="site-header">
-      <nav className="navbar" aria-label="ניווט ראשי">
+      <nav className="navbar container" aria-label="ניווט ראשי">
+        {/* Brand */}
         <NavLink to="/" className="brand" aria-label="TicketGuard - דף הבית">
+          <span className="brand-shield material-symbols-outlined">security</span>
           TicketGuard
         </NavLink>
 
+        {/* Navigation links */}
         <div className="nav-links">
-          {publicNavItems.map((item) => (
-            <NavLink key={item.to} to={item.to} end={item.end} className="nav-link">
-              {item.label}
-            </NavLink>
-          ))}
+          <NavLink to="/" end className="nav-link">
+            דף הבית
+          </NavLink>
+          <NavLink to="/upload" className="nav-link">
+            בדיקת דוח
+          </NavLink>
 
           {!loading && !user && (
             <NavLink to="/login" className="nav-link">
@@ -47,25 +46,29 @@ function Navbar() {
                   ניהול
                 </NavLink>
               )}
-              <button
-                className="nav-link"
-                type="button"
-                onClick={handleSignOut}
-                style={{ background: 'transparent', cursor: 'pointer' }}
-              >
-                יציאה
-              </button>
             </>
           )}
         </div>
 
+        {/* Right-side icons */}
         <div className="nav-icons">
-          <button className="icon-button" type="button" aria-label="התראות">
-            <Icon name="notifications" />
-          </button>
-          <NavLink to={user ? '/dashboard' : '/login'} className="icon-button" aria-label="חשבון">
-            <Icon name="account_circle" />
-          </NavLink>
+          {!loading && user ? (
+            <button
+              className="button button-secondary button-sm"
+              type="button"
+              onClick={handleSignOut}
+            >
+              <Icon name="logout" />
+              יציאה
+            </button>
+          ) : (
+            !loading && (
+              <NavLink to="/login" className="button button-primary button-sm">
+                <Icon name="login" />
+                כניסה
+              </NavLink>
+            )
+          )}
         </div>
       </nav>
     </header>

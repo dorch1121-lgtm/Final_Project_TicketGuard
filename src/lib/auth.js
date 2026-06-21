@@ -25,6 +25,53 @@ export async function signInWithEmail(email, password) {
   });
 }
 
+export async function ensureUserProfile(user, fullName = '') {
+  const { client, error } = requireSupabaseClient();
+
+  if (error) {
+    return { data: null, error };
+  }
+
+  if (!user?.id) {
+    return { data: null, error: new Error('Missing authenticated user.') };
+  }
+
+  const existingProfileResult = await client
+    .from('profiles')
+    .select('*')
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  if (existingProfileResult.error || existingProfileResult.data) {
+    return existingProfileResult;
+  }
+
+  const profilePayload = {
+    user_id: user.id,
+    full_name: fullName || user.user_metadata?.full_name || null,
+    email: user.email,
+    role: 'user',
+    free_report_used: false,
+    payment_status: 'none',
+  };
+
+  const profileResult = await client
+    .from('profiles')
+    .insert(profilePayload)
+    .select()
+    .single();
+
+  if (profileResult.error?.code === '23505') {
+    return client
+      .from('profiles')
+      .select('*')
+      .eq('user_id', user.id)
+      .maybeSingle();
+  }
+
+  return profileResult;
+}
+
 export async function signUpWithEmail(email, password, fullName) {
   const { client, error } = requireSupabaseClient();
 
@@ -46,22 +93,18 @@ export async function signUpWithEmail(email, password, fullName) {
     return signUpResult;
   }
 
-  const user = signUpResult.data.user;
-  const profileResult = await client
-    .from('profiles')
-    .upsert(
-      {
-        user_id: user.id,
-        full_name: fullName,
-        email: user.email ?? email,
-        role: 'user',
-        free_report_used: false,
-        payment_status: 'none',
+  if (!signUpResult.data.session) {
+    return {
+      data: {
+        ...signUpResult.data,
+        profile: null,
+        emailConfirmationRequired: true,
       },
-      { onConflict: 'user_id' }
-    )
-    .select()
-    .single();
+      error: null,
+    };
+  }
+
+  const profileResult = await ensureUserProfile(signUpResult.data.user, fullName);
 
   if (profileResult.error) {
     return { data: signUpResult.data, error: profileResult.error };
