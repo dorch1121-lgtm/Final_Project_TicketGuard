@@ -27,7 +27,7 @@ security definer
 stable
 set search_path = public
 as $$
-  select coalesce(public.current_user_role() in ('admin', 'super_admin'), false)
+  select coalesce(public.current_user_role() = 'super_admin', false)
 $$;
 
 create or replace function public.is_super_admin()
@@ -396,8 +396,8 @@ using (
 
 -- =========================================================
 -- analysis_results
--- Read access is allowed through the related report case.
--- Write access is limited to super_admin for testing until backend analysis service functions exist.
+-- Users can create/read/update analysis results only through their own report cases.
+-- Super admin can read all results and delete support/test records when needed.
 -- =========================================================
 
 alter table public.analysis_results enable row level security;
@@ -410,19 +410,44 @@ to authenticated
 using (public.can_access_report_case(report_case_id));
 
 drop policy if exists "analysis_results_insert_super_admin" on public.analysis_results;
-create policy "analysis_results_insert_super_admin"
+drop policy if exists "analysis_results_insert_own_case" on public.analysis_results;
+create policy "analysis_results_insert_own_case"
 on public.analysis_results
 for insert
 to authenticated
-with check (public.is_super_admin());
+with check (
+  exists (
+    select 1
+    from public.report_cases rc
+    where rc.id = analysis_results.report_case_id
+      and rc.user_id = auth.uid()
+  )
+);
 
 drop policy if exists "analysis_results_update_super_admin" on public.analysis_results;
-create policy "analysis_results_update_super_admin"
+drop policy if exists "analysis_results_update_own_case_or_super_admin" on public.analysis_results;
+create policy "analysis_results_update_own_case_or_super_admin"
 on public.analysis_results
 for update
 to authenticated
-using (public.is_super_admin())
-with check (public.is_super_admin());
+using (
+  public.is_super_admin()
+  or exists (
+    select 1
+    from public.report_cases rc
+    where rc.id = analysis_results.report_case_id
+      and rc.user_id = auth.uid()
+  )
+)
+with check (
+  public.is_super_admin()
+  or exists (
+    select 1
+    from public.report_cases rc
+    where rc.id = analysis_results.report_case_id
+      and rc.user_id = auth.uid()
+  )
+);
 
 drop policy if exists "analysis_results_delete_super_admin" on public.analysis_results;
 create policy "analysis_results_delete_super_admin"
@@ -477,66 +502,36 @@ using (public.is_super_admin());
 
 -- =========================================================
 -- admin_reviews
--- Admins and super admins can read/update reviews for exceptional cases.
--- Super admin can insert/delete for testing until backend service functions exist.
--- Regular users cannot read this table directly.
+-- Admin review data stays admin-only. Regular users do not insert/read this table
+-- directly; the upload flow uses create_admin_review_if_needed().
 -- =========================================================
 
 alter table public.admin_reviews enable row level security;
 
 drop policy if exists "admin_reviews_select_admin_exceptional" on public.admin_reviews;
-create policy "admin_reviews_select_admin_exceptional"
+drop policy if exists "admin_reviews_select_super_admin" on public.admin_reviews;
+create policy "admin_reviews_select_super_admin"
 on public.admin_reviews
 for select
 to authenticated
-using (
-  public.is_admin()
-  and exists (
-    select 1
-    from public.report_cases rc
-    where rc.id = admin_reviews.report_case_id
-      and rc.is_exceptional = true
-  )
-);
+using (public.is_super_admin());
 
 drop policy if exists "admin_reviews_insert_super_admin_exceptional" on public.admin_reviews;
-create policy "admin_reviews_insert_super_admin_exceptional"
+drop policy if exists "admin_reviews_insert_super_admin" on public.admin_reviews;
+create policy "admin_reviews_insert_super_admin"
 on public.admin_reviews
 for insert
 to authenticated
-with check (
-  public.is_super_admin()
-  and exists (
-    select 1
-    from public.report_cases rc
-    where rc.id = admin_reviews.report_case_id
-      and rc.is_exceptional = true
-  )
-);
+with check (public.is_super_admin());
 
 drop policy if exists "admin_reviews_update_admin_exceptional" on public.admin_reviews;
-create policy "admin_reviews_update_admin_exceptional"
+drop policy if exists "admin_reviews_update_super_admin" on public.admin_reviews;
+create policy "admin_reviews_update_super_admin"
 on public.admin_reviews
 for update
 to authenticated
-using (
-  public.is_admin()
-  and exists (
-    select 1
-    from public.report_cases rc
-    where rc.id = admin_reviews.report_case_id
-      and rc.is_exceptional = true
-  )
-)
-with check (
-  public.is_admin()
-  and exists (
-    select 1
-    from public.report_cases rc
-    where rc.id = admin_reviews.report_case_id
-      and rc.is_exceptional = true
-  )
-);
+using (public.is_super_admin())
+with check (public.is_super_admin());
 
 drop policy if exists "admin_reviews_delete_super_admin" on public.admin_reviews;
 create policy "admin_reviews_delete_super_admin"

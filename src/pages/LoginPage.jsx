@@ -49,7 +49,7 @@ function LoginPage() {
   const pageTitle = isRegisterMode ? 'יצירת חשבון' : 'כניסה לחשבון';
 
   const navigateAfterAuth = (role) => {
-    const nextRoute = role === 'admin' || role === 'super_admin' ? '/admin' : '/dashboard';
+    const nextRoute = role === 'super_admin' ? '/admin' : '/dashboard';
     window.setTimeout(() => navigate(nextRoute), 600);
   };
 
@@ -102,7 +102,8 @@ function LoginPage() {
 
       setSuccessMessage('התחברת בהצלחה!');
       navigateAfterAuth(profile?.role);
-    } catch {
+    } catch (error) {
+      console.error('[LoginPage] auth submit failed:', error);
       setErrorMessage(isRegisterMode ? GENERAL_REGISTER_ERROR : GENERAL_SIGN_IN_ERROR);
     } finally {
       setIsLoading(false);

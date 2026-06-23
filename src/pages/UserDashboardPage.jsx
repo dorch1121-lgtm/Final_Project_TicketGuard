@@ -1,172 +1,147 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import CaseCard from '../components/CaseCard';
+import EmptyState from '../components/EmptyState';
+import ErrorState from '../components/ErrorState';
+import FreeReportNotice from '../components/FreeReportNotice';
 import Icon from '../components/Icon';
+import LoadingSpinner from '../components/LoadingSpinner';
+import PageHeader from '../components/PageHeader';
 import StatCard from '../components/StatCard';
 import { getCurrentUser } from '../lib/auth';
-import { supabase } from '../lib/supabase';
+import { getMyAccessStatus } from '../lib/reportAccess';
+import { getUserReportCases } from '../lib/reportService';
+import { buildReportStats, mapReportCaseToCaseItem } from '../lib/statusUtils';
 import useAuthProfile from '../lib/useAuthProfile';
-import { getUserDashboardData } from '../services/caseRepository';
 
-const fallbackDashboardData = getUserDashboardData();
-
-function formatDate(value) {
-  if (!value) return '';
-  return new Intl.DateTimeFormat('he-IL').format(new Date(value));
-}
-
-function getStatusLabel(status) {
-  const labels = {
-    uploaded:      'הועלה',
-    missing_details:'חסר מידע',
-    analyzing:     'בניתוח',
-    analyzed:      'הושלמה בדיקה',
-    manual_review: 'נדרש מעבר ידני',
-    closed:        'נסגר',
-  };
-  return labels[status] || status;
-}
-
-function mapReportCase(reportCase) {
-  return {
-    id:        reportCase.id,
-    title:     reportCase.report_type || 'דוח תנועה',
-    type:      reportCase.report_type || 'דוח תנועה',
-    authority: reportCase.authority || 'לא זוהה עדיין',
-    date:      formatDate(reportCase.created_at),
-    amount:    null,
-    status:    getStatusLabel(reportCase.status),
-    chance:    reportCase.appeal_chance ?? null,
-    risk:      reportCase.risk_level,
-  };
-}
-
-function buildStats(cases) {
-  const analyzedCases = cases.filter((c) => c.chance !== null);
-  const averageChance =
-    analyzedCases.length > 0
-      ? Math.round(analyzedCases.reduce((sum, c) => sum + c.chance, 0) / analyzedCases.length)
-      : 0;
-  const waitingCases = cases.filter((c) => c.status === 'חסר מידע').length;
-
+function buildStatCards(reportStats) {
   return [
-    { label: 'סך הכל דוחות',      value: String(cases.length),           tone: 'blue',   icon: 'folder_open' },
-    { label: 'ממוצע סיכויי ערעור', value: `${averageChance}%`,            tone: 'green',  icon: 'trending_up' },
-    { label: 'ממתינים להשלמה',    value: String(waitingCases),            tone: 'orange', icon: 'pending_actions' },
-    { label: 'דוח חינם נוצל',     value: cases.length > 0 ? 'כן' : 'לא', tone: 'blue',   icon: 'check_circle' },
+    { label: 'סך הכל דוחות', value: String(reportStats.total), tone: 'blue', icon: 'folder_open' },
+    { label: 'ממתינים לטיפול', value: String(reportStats.waiting), tone: 'orange', icon: 'pending_actions' },
+    { label: 'בטיפול', value: String(reportStats.inProgress), tone: 'blue', icon: 'hourglass_top' },
+    { label: 'הושלמו', value: String(reportStats.done), tone: 'green', icon: 'task_alt' },
+    { label: 'נדחו', value: String(reportStats.rejected), tone: 'red', icon: 'cancel' },
   ];
 }
 
 function UserDashboardPage() {
   const { profile } = useAuthProfile();
-  const [stats, setStats]   = useState(fallbackDashboardData.stats);
-  const [cases, setCases]   = useState([]);
+  const [cases, setCases] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [freeReportUsed, setFreeReportUsed] = useState(null);
 
   useEffect(() => {
     let isActive = true;
 
     async function loadUserCases() {
-      if (!supabase) {
-        setCases(fallbackDashboardData.cases);
-        setLoading(false);
-        return;
-      }
+      setLoading(true);
+      setErrorMessage('');
 
       const { data: userData, error: userError } = await getCurrentUser();
+
+      if (!isActive) return;
 
       if (userError || !userData?.user) {
         setLoading(false);
         return;
       }
 
-      const { data, error } = await supabase
-        .from('report_cases')
-        .select('*')
-        .eq('user_id', userData.user.id)
-        .order('created_at', { ascending: false });
-
-      if (!isActive) return;
-
-      if (error) {
-        setStats(fallbackDashboardData.stats);
-        setCases(fallbackDashboardData.cases);
-        setLoading(false);
-        return;
+      try {
+        const data = await getUserReportCases(userData.user.id);
+        if (!isActive) return;
+        setCases(data.map(mapReportCaseToCaseItem));
+      } catch (error) {
+        if (!isActive) return;
+        console.error('[UserDashboardPage] failed to load user report cases:', error);
+        setErrorMessage('לא ניתן היה לטעון את הדוחות שלך כרגע.');
+      } finally {
+        if (isActive) setLoading(false);
       }
 
-      const mappedCases = (data ?? []).map(mapReportCase);
-      setStats(buildStats(mappedCases));
-      setCases(mappedCases);
-      setLoading(false);
+      // Free-report status is shown separately so that this brand new
+      // check can never break the existing report list above if it fails.
+      try {
+        const access = await getMyAccessStatus();
+        if (!isActive) return;
+        setFreeReportUsed(access.freeReportUsed);
+      } catch (error) {
+        console.error('[UserDashboardPage] failed to load free-report access status:', error);
+        // Notice simply stays hidden/default — never blocks the dashboard.
+      }
     }
 
     loadUserCases();
     return () => { isActive = false; };
   }, []);
 
-  const hasCases   = cases.length > 0;
-  const firstName  = profile?.full_name?.split(' ')[0] ?? null;
+  const hasCases = cases.length > 0;
+  const firstName = profile?.full_name?.split(' ')[0] ?? null;
+  const stats = buildStatCards(buildReportStats(cases));
+  const recentCases = cases.slice(0, 4);
 
   return (
     <div className="auth-page-content">
-      {/* Page header */}
-      <div className="auth-page-header">
-        <div>
-          <h1>
-            {firstName ? `שלום, ${firstName} 👋` : 'האזור האישי שלך'}
-          </h1>
-          <p>מעקב אחר דוחות שנבדקו, סטטוסים ופעולות נדרשות.</p>
-        </div>
-        <Link to="/upload" className="button button-primary">
-          <Icon name="upload_file" />
-          העלאת דוח חדש
-        </Link>
-      </div>
+      <PageHeader
+        title={firstName ? `שלום, ${firstName} 👋` : 'האזור האישי שלך'}
+        description="נהל את הדוחות שלך במקום אחד — מעקב אחר סטטוסים ופעולות נדרשות."
+        actions={
+          <>
+            <Link to="/upload" className="button button-primary">
+              <Icon name="upload_file" />
+              העלאת דוח חדש
+            </Link>
+            <Link to="/reports" className="button button-secondary">
+              <Icon name="folder_open" />
+              הדוחות שלי
+            </Link>
+          </>
+        }
+      />
+
+      {freeReportUsed !== null && <FreeReportNotice freeReportUsed={freeReportUsed} />}
 
       {/* Stats row */}
-      <div className="section-grid">
+      <div className="section-grid stats-grid-5">
         {stats.map((stat) => (
           <StatCard key={stat.label} {...stat} />
         ))}
       </div>
 
-      {/* Cases section */}
+      {/* Recent cases section */}
       <section>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
-          <h2 style={{ marginBottom: 0 }}>הדוחות שלי</h2>
+        <div className="section-title-row">
+          <h2>הדוחות האחרונים שלך</h2>
           {hasCases && (
-            <span style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)' }}>
-              {cases.length} דוחות
-            </span>
+            <Link to="/reports" className="section-title-link">
+              לכל הדוחות
+              <Icon name="arrow_back" />
+            </Link>
           )}
         </div>
 
         {loading ? (
-          <div className="card loading-state">
-            <div className="loader-dots">
-              <span /><span /><span />
-            </div>
-            <p>טוען דוחות...</p>
-          </div>
+          <LoadingSpinner label="טוען דוחות..." />
+        ) : errorMessage ? (
+          <ErrorState description={errorMessage} />
         ) : hasCases ? (
           <div className="cases-grid">
-            {cases.map((caseItem) => (
+            {recentCases.map((caseItem) => (
               <CaseCard key={caseItem.id} caseItem={caseItem} />
             ))}
           </div>
         ) : (
-          <div className="card empty-state">
-            <div className="empty-state-icon">
-              <Icon name="folder_open" />
-            </div>
-            <h2>עדיין לא העלית דוחות</h2>
-            <p>לאחר העלאת הדוח הראשון, פרטי הניתוח יופיעו כאן.</p>
-            <Link to="/upload" className="button button-primary" style={{ width: 'auto', marginTop: '0.5rem' }}>
-              <Icon name="upload_file" />
-              העלאת הדוח הראשון
-            </Link>
-          </div>
+          <EmptyState
+            icon={<Icon name="folder_open" />}
+            title="עדיין לא העלית דוחות"
+            description="לאחר העלאת הדוח הראשון, פרטי הניתוח יופיעו כאן."
+            action={
+              <Link to="/upload" className="button button-primary">
+                <Icon name="upload_file" />
+                העלה דוח ראשון
+              </Link>
+            }
+          />
         )}
       </section>
 
@@ -178,7 +153,7 @@ function UserDashboardPage() {
         </h3>
         <p>
           הדוח הראשון פתוח ללא עלות. המערכת מנתחת את הדוח שלך, מחלצת נתונים רלוונטיים
-          ומספקת הערכה מנומקת של סיכויי הביטול. בדיקות נוספות ידרשו הרשמה ותשלום בעתיד.
+          ומספקת הערכה מנומקת של סיכויי הביטול. בדיקות נוספות עולות ₪30 לבדיקה.
         </p>
       </div>
     </div>

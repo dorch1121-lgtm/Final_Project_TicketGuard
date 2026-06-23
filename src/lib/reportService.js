@@ -1,4 +1,7 @@
 import { legalDisclaimer } from '../data/mockData';
+import { throwIfError } from './errors';
+import { createAdminReviewIfNeeded } from './reportAccess';
+import { buildReportStats } from './statusUtils';
 import { supabase } from './supabase';
 
 const REPORT_BUCKET = 'report-pdfs';
@@ -58,18 +61,7 @@ function createStoragePath({ userId, reportCaseId, file }) {
 }
 
 function throwSupabaseError(error) {
-  if (error) {
-    throw new Error(error.message || reportUploadErrors.uploadFailed);
-  }
-}
-
-async function tryCreateMockRecord(createRecord) {
-  try {
-    return await createRecord();
-  } catch (error) {
-    console.warn('Mock report data was not fully saved to Supabase:', error);
-    return null;
-  }
+  throwIfError(error, reportUploadErrors.uploadFailed);
 }
 
 export async function createReportCase({
@@ -84,7 +76,7 @@ export async function createReportCase({
       user_id: userId,
       report_type: reportType,
       authority,
-      status: 'analyzed',
+      status: 'uploaded',
       appeal_chance: 68,
       risk_level: 'medium',
       is_exceptional: true,
@@ -120,68 +112,16 @@ export async function createReportFileRecord({ reportCaseId, file, storagePath }
   const client = requireSupabaseClient();
   const { data, error } = await client
     .from('report_files')
-    .insert({
+    .upsert({
       report_case_id: reportCaseId,
       file_name: file.name,
       file_url: storagePath,
       file_type: file.type,
       file_size: file.size,
       upload_status: 'uploaded',
-    })
+    }, { onConflict: 'report_case_id' })
     .select()
     .single();
-
-  throwSupabaseError(error);
-
-  return data;
-}
-
-export async function createMockExtractedDetails({ reportCaseId }) {
-  const client = requireSupabaseClient();
-  const { data, error } = await client
-    .from('extracted_report_details')
-    .insert({
-      report_case_id: reportCaseId,
-      report_number: 'MOCK-7492-492-12',
-      violation_date: '2026-04-14',
-      violation_time: '09:20',
-      location: 'רחוב המסגר 12, תל אביב',
-      vehicle_number: '123-45-678',
-      fine_amount: 500,
-      points: 0,
-      violation_description: 'דוח תנועה לדוגמה שנוצר במסגרת ניתוח מדומה',
-      raw_extracted_text: 'תוכן מדומה בלבד. לא בוצע OCR אמיתי בשלב זה.',
-      confidence_score: 0.82,
-    })
-    .select()
-    .single();
-
-  throwSupabaseError(error);
-
-  return data;
-}
-
-export async function createMockMissingDetails({ reportCaseId }) {
-  const client = requireSupabaseClient();
-  const { data, error } = await client
-    .from('missing_details')
-    .insert([
-      {
-        report_case_id: reportCaseId,
-        field_name: 'full_report_number',
-        question_text: 'מהו מספר הדוח המלא כפי שמופיע במסמך?',
-        is_required: true,
-        status: 'open',
-      },
-      {
-        report_case_id: reportCaseId,
-        field_name: 'original_photo',
-        question_text: 'האם יש ברשותך צילום מקורי באיכות גבוהה?',
-        is_required: false,
-        status: 'open',
-      },
-    ])
-    .select();
 
   throwSupabaseError(error);
 
@@ -192,7 +132,7 @@ export async function createMockAnalysisResult({ reportCaseId }) {
   const client = requireSupabaseClient();
   const { data, error } = await client
     .from('analysis_results')
-    .insert({
+    .upsert({
       report_case_id: reportCaseId,
       chance_percentage: 68,
       risk_level: 'medium',
@@ -201,7 +141,7 @@ export async function createMockAnalysisResult({ reportCaseId }) {
       recommendation:
         'מומלץ להשלים את הפרטים החסרים ולשקול פנייה מנומקת לרשות, תוך בדיקה עצמאית של פרטי הדוח.',
       legal_disclaimer: legalDisclaimer,
-    })
+    }, { onConflict: 'report_case_id' })
     .select()
     .single();
 
@@ -210,71 +150,126 @@ export async function createMockAnalysisResult({ reportCaseId }) {
   return data;
 }
 
-export async function createMockAnalysisFactors({ analysisResultId }) {
+export async function createMockAdminReviewIfNeeded({ reportCaseId }) {
+  return createAdminReviewIfNeeded(reportCaseId);
+}
+
+export async function getUserReportCases(userId) {
   const client = requireSupabaseClient();
   const { data, error } = await client
-    .from('analysis_factors')
-    .insert([
-      {
-        analysis_result_id: analysisResultId,
-        factor_type: 'strong_point',
-        title: 'פער אפשרי בפרטי המיקום',
-        description: 'כתובת העבירה דורשת בדיקה נוספת מול פרטי הדוח והצילום.',
-        impact_score: 18,
-      },
-      {
-        analysis_result_id: analysisResultId,
-        factor_type: 'strong_point',
-        title: 'חסר תיעוד משלים',
-        description: 'ייתכן שקיים צורך בתיעוד מקורי ברור יותר כדי לחזק את הדוח.',
-        impact_score: 12,
-      },
-      {
-        analysis_result_id: analysisResultId,
-        factor_type: 'weak_point',
-        title: 'פרטי רכב ברורים',
-        description: 'מספר הרכב מופיע בצורה ברורה ולכן נקודה זו מחזקת את עמדת הרשות.',
-        impact_score: -10,
-      },
-      {
-        analysis_result_id: analysisResultId,
-        factor_type: 'missing_info',
-        title: 'מספר דוח מלא',
-        description: 'נדרש מספר הדוח המלא לצורך בדיקה מדויקת יותר.',
-        impact_score: 0,
-      },
-    ])
-    .select();
+    .from('report_cases')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
 
   throwSupabaseError(error);
 
-  return data;
+  return data ?? [];
 }
 
-export async function createMockAdminReviewIfNeeded({ reportCaseId, userId }) {
+export async function getReportCaseDetails(reportCaseId) {
   const client = requireSupabaseClient();
-  const { data, error } = await client
-    .from('admin_reviews')
-    .insert({
-      report_case_id: reportCaseId,
-      reason: 'ניתוח מדומה סומן כחריג ודורש בדיקה ידנית',
-      priority: 'medium',
-      status: 'pending',
-      admin_notes: 'רשומת בדיקה ידנית נוצרה מנתוני דמו. לא בוצע AI/OCR אמיתי.',
-      reviewed_by: userId,
-    })
-    .select()
-    .single();
+
+  const { data: reportCase, error: reportCaseError } = await client
+    .from('report_cases')
+    .select('*')
+    .eq('id', reportCaseId)
+    .maybeSingle();
+
+  throwSupabaseError(reportCaseError);
+
+  if (!reportCase) {
+    return null;
+  }
+
+  const [filesResult, analysisResult, adminReviewResult] = await Promise.all([
+    client.from('report_files').select('*').eq('report_case_id', reportCaseId),
+    client.from('analysis_results').select('*').eq('report_case_id', reportCaseId).maybeSingle(),
+    client.from('admin_reviews').select('*').eq('report_case_id', reportCaseId).maybeSingle(),
+  ]);
+
+  return {
+    reportCase,
+    files: filesResult.data ?? [],
+    analysisResult: analysisResult.data ?? null,
+    analysisFactors: [],
+    missingDetails: [],
+    adminReview: adminReviewResult.data ?? null,
+    extractedDetails: null,
+  };
+}
+
+async function attachReporterProfiles(client, reportCases) {
+  const userIds = [...new Set(reportCases.map((c) => c.user_id).filter(Boolean))];
+
+  if (userIds.length === 0) {
+    return reportCases.map((reportCase) => ({ ...reportCase, reporter: null }));
+  }
+
+  const { data: profiles, error } = await client
+    .from('profiles')
+    .select('user_id, full_name, email')
+    .in('user_id', userIds);
 
   throwSupabaseError(error);
 
-  return data;
+  const profileById = new Map((profiles ?? []).map((p) => [p.user_id, p]));
+
+  return reportCases.map((reportCase) => ({
+    ...reportCase,
+    reporter: profileById.get(reportCase.user_id) ?? null,
+  }));
 }
 
-export async function createFullMockReportAnalysis({ userId, file }) {
+export async function getAdminReportCases() {
+  const client = requireSupabaseClient();
+  const { data, error } = await client
+    .from('report_cases')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  throwSupabaseError(error);
+
+  return attachReporterProfiles(client, data ?? []);
+}
+
+async function safeCount(promise) {
+  try {
+    const { count, error } = await promise;
+    if (error) return null;
+    return count ?? 0;
+  } catch {
+    return null;
+  }
+}
+
+export async function getAdminOverviewCounts() {
+  const client = requireSupabaseClient();
+
+  const [statusRows, pendingReviews, registeredUsers] = await Promise.all([
+    client.from('report_cases').select('status'),
+    safeCount(client.from('admin_reviews').select('id', { count: 'exact', head: true }).eq('status', 'pending')),
+    safeCount(client.from('profiles').select('user_id', { count: 'exact', head: true })),
+  ]);
+
+  const cases = statusRows.error ? [] : statusRows.data ?? [];
+
+  return {
+    reportStats: buildReportStats(cases),
+    pendingReviews,
+    registeredUsers,
+  };
+}
+
+/**
+ * Runs the mock OCR/AI pipeline for an already-created (and already
+ * access-gated — free reservation confirmed or payment verified)
+ * report case. Gating itself lives in reportAccess.js; this function
+ * only performs the data work.
+ */
+export async function runMockAnalysisPipeline({ reportCase, userId, file }) {
   validatePdfFile(file);
 
-  const reportCase = await createReportCase({ userId });
   const storagePath = await uploadReportPdf({
     userId,
     reportCaseId: reportCase.id,
@@ -285,30 +280,19 @@ export async function createFullMockReportAnalysis({ userId, file }) {
     file,
     storagePath,
   });
-  const extractedDetails = await tryCreateMockRecord(() =>
-    createMockExtractedDetails({ reportCaseId: reportCase.id })
-  );
-  const missingDetails = await tryCreateMockRecord(() =>
-    createMockMissingDetails({ reportCaseId: reportCase.id })
-  );
-  const analysisResult = await tryCreateMockRecord(() =>
-    createMockAnalysisResult({ reportCaseId: reportCase.id })
-  );
-  const analysisFactors = analysisResult?.id
-    ? await tryCreateMockRecord(() => createMockAnalysisFactors({ analysisResultId: analysisResult.id }))
-    : null;
+  const analysisResult = await createMockAnalysisResult({ reportCaseId: reportCase.id });
   const adminReview = reportCase.is_exceptional
-    ? await tryCreateMockRecord(() => createMockAdminReviewIfNeeded({ reportCaseId: reportCase.id, userId }))
+    ? await createMockAdminReviewIfNeeded({ reportCaseId: reportCase.id })
     : null;
 
   return {
     reportCase,
     reportFile,
     storagePath,
-    extractedDetails,
-    missingDetails,
+    extractedDetails: null,
+    missingDetails: null,
     analysisResult,
-    analysisFactors,
+    analysisFactors: null,
     adminReview,
   };
 }

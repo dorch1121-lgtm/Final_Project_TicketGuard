@@ -1,15 +1,16 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import AccessBadge from '../components/AccessBadge';
+import AppealSubmissionHelper from '../components/AppealSubmissionHelper';
+import AdaptiveNextSteps from '../components/AdaptiveNextSteps';
 import Icon from '../components/Icon';
 import ResultCard from '../components/ResultCard';
-import { legalDisclaimer } from '../data/mockData';
+import { analysisResult as fallbackAnalysisResult, legalDisclaimer } from '../data/mockData';
 import { latestReportStorageKeys } from '../lib/reportService';
 import { supabase } from '../lib/supabase';
-import { getCurrentAnalysisResult } from '../services/reportWorkflow';
 
-function mapAnalysisResult(analysisResult, analysisFactors) {
-  const fallback = getCurrentAnalysisResult();
+function mapAnalysisResult(analysisResult, analysisFactors, reportCase = null) {
+  const fallback = fallbackAnalysisResult;
   const strongPoints = analysisFactors
     .filter((factor) => factor.factor_type === 'strong_point')
     .map((factor) => `${factor.title}: ${factor.description}`);
@@ -21,19 +22,21 @@ function mapAnalysisResult(analysisResult, analysisFactors) {
     .map((factor) => factor.description || factor.title);
 
   return {
-    chance: Math.round(analysisResult.chance_percentage ?? fallback.chance),
-    riskLevel: analysisResult.risk_level ?? fallback.riskLevel,
+    chance: Math.round(reportCase?.appeal_chance ?? analysisResult.chance_percentage ?? fallback.chance),
+    riskLevel: analysisResult.risk_level ?? reportCase?.risk_level ?? fallback.riskLevel,
     summary: analysisResult.explanation || fallback.summary,
     strongPoints: strongPoints.length > 0 ? strongPoints : fallback.strongPoints,
     weakPoints: weakPoints.length > 0 ? weakPoints : fallback.weakPoints,
     missingInfo: missingInfo.length > 0 ? missingInfo : fallback.missingInfo,
     recommendation: analysisResult.recommendation || fallback.recommendation,
     legalDisclaimer: analysisResult.legal_disclaimer || legalDisclaimer,
+    isExceptional: Boolean(reportCase?.is_exceptional),
+    status: reportCase?.status ?? '',
   };
 }
 
 function AnalysisResultPage() {
-  const [analysisResult, setAnalysisResult] = useState(getCurrentAnalysisResult());
+  const [analysisResult, setAnalysisResult] = useState(fallbackAnalysisResult);
 
   useEffect(() => {
     let isActive = true;
@@ -62,17 +65,23 @@ function AnalysisResultPage() {
         return;
       }
 
-      const { data: factorsData, error: factorsError } = await supabase
-        .from('analysis_factors')
-        .select('*')
-        .eq('analysis_result_id', resultData.id);
+      const reportCaseId = latestReportCaseId || resultData.report_case_id;
+      let reportCaseData = null;
 
-      if (factorsError) {
-        return;
+      if (reportCaseId) {
+        const { data: fetchedReportCase, error: reportCaseError } = await supabase
+          .from('report_cases')
+          .select('appeal_chance, risk_level, is_exceptional, status')
+          .eq('id', reportCaseId)
+          .maybeSingle();
+
+        if (!reportCaseError) {
+          reportCaseData = fetchedReportCase;
+        }
       }
 
       if (isActive) {
-        setAnalysisResult(mapAnalysisResult(resultData, factorsData ?? []));
+        setAnalysisResult(mapAnalysisResult(resultData, [], reportCaseData));
       }
     }
 
@@ -154,6 +163,19 @@ function AnalysisResultPage() {
           <p>{analysisResult.legalDisclaimer || legalDisclaimer}</p>
         </div>
       </section>
+
+      <AppealSubmissionHelper />
+
+      <AdaptiveNextSteps
+        appealChance={analysisResult.chance}
+        riskLevel={analysisResult.riskLevel}
+        isExceptional={analysisResult.isExceptional}
+        recommendation={analysisResult.recommendation}
+        strongPoints={analysisResult.strongPoints}
+        weakPoints={analysisResult.weakPoints}
+        missingDetails={analysisResult.missingInfo}
+        status={analysisResult.status}
+      />
     </section>
   );
 }

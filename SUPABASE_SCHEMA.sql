@@ -229,7 +229,7 @@ create table if not exists public.payments (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint payments_amount_check check (amount >= 0),
-  constraint payments_payment_status_check check (payment_status in ('pending', 'paid', 'failed', 'refunded'))
+  constraint payments_payment_status_check check (payment_status in ('pending', 'paid', 'failed', 'cancelled', 'refunded'))
 );
 
 comment on table public.payments is 'Payment records for future paid analysis/report flows.';

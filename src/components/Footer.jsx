@@ -7,12 +7,7 @@ function Footer() {
         <Link to="/" className="footer-brand">
           TicketGuard
         </Link>
-        <p>© 2025 TicketGuard. המידע באתר אינו מהווה ייעוץ משפטי.</p>
-        <div className="footer-links">
-          <Link to="/login">תקנון</Link>
-          <Link to="/login">פרטיות</Link>
-          <Link to="/login">צור קשר</Link>
-        </div>
+        <p>© 2026 TicketGuard. המידע במערכת אינו מהווה ייעוץ משפטי.</p>
       </div>
     </footer>
   );

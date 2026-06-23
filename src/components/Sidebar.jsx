@@ -19,10 +19,11 @@ function Sidebar({ isOpen, onClose }) {
   const userNavItems = [
     { to: '/dashboard', icon: 'dashboard', label: 'לוח בקרה', end: true },
     { to: '/upload', icon: 'upload_file', label: 'העלאת דוח' },
+    { to: '/reports', icon: 'folder_open', label: 'הדוחות שלי' },
   ];
 
   const adminNavItems = isAdmin
-    ? [{ to: '/admin', icon: 'admin_panel_settings', label: 'ניהול דוחות' }]
+    ? [{ to: '/admin', icon: 'admin_panel_settings', label: 'מעבר לאזור ניהול' }]
     : [];
 
   return (
@@ -67,6 +68,7 @@ function Sidebar({ isOpen, onClose }) {
               <NavLink
                 key={item.to}
                 to={item.to}
+                end={item.end}
                 className={({ isActive }) => `sidebar-nav-item${isActive ? ' active' : ''}`}
                 onClick={onClose}
               >

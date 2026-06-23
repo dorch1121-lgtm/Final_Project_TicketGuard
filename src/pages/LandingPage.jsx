@@ -1,139 +1,145 @@
-import { Link } from 'react-router-dom';
-import Icon from '../components/Icon';
+import CTASection from '../components/CTASection';
+import FeatureCard from '../components/FeatureCard';
+import HeroSection from '../components/HeroSection';
+import LandingFooter from '../components/LandingFooter';
+import LandingHeader from '../components/LandingHeader';
+import ProcessStepCard from '../components/ProcessStepCard';
 import { legalDisclaimer } from '../data/mockData';
 
 const steps = [
   {
     icon: 'upload_file',
-    title: 'מעלים את הדוח',
-    description: 'מעלים קובץ PDF של דוח התנועה שקיבלתם. המערכת תחלץ את הנתונים הרלוונטיים באופן אוטומטי.',
+    title: 'מעלים דוח PDF',
+    description: 'מעלים את קובץ ה-PDF של הדוח שקיבלתם, ישירות מהמחשב או מהנייד.',
   },
   {
     icon: 'analytics',
-    title: 'ניתוח חכם',
-    description: 'מנוע הניתוח שלנו בוחן את הפרמטרים המשפטיים ומשווה לפסיקות קודמות כדי להעריך את סיכויי ההצלחה.',
+    title: 'המערכת מנתחת ומארגנת את הנתונים',
+    description: 'TicketGuard מחלצת את הפרטים הרלוונטיים ומסדרת אותם לבדיקה ראשונית.',
   },
   {
-    icon: 'gavel',
-    title: 'קבלת תשובה',
-    description: 'מקבלים דוח מפורט עם אחוזי הצלחה צפויים והמלצה ברורה האם להגיש ערעור או לשלם.',
+    icon: 'visibility',
+    title: 'עוקבים אחרי הטיפול באזור האישי',
+    description: 'כל הדוחות וסטטוס הטיפול בהם מרוכזים במקום אחד, נגיש בכל זמן.',
   },
 ];
 
 const benefits = [
   {
-    icon: 'shield_check',
-    title: 'ניתוח אמין',
-    description: 'הערכת סיכויים מבוססת על נתונים משפטיים ופסיקות קודמות.',
+    icon: 'schedule',
+    title: 'חיסכון בזמן',
+    description: 'תהליך העלאה ובדיקה ראשונית מסודר, ללא צורך בריצות ובירוקרטיה.',
   },
   {
-    icon: 'speed',
-    title: 'תשובה מהירה',
-    description: 'קבלו הערכה תוך שניות, ללא המתנה לעורך דין.',
+    icon: 'checklist',
+    title: 'סדר ומעקב',
+    description: 'כל הדוחות שלכם מרוכזים במקום אחד עם סטטוס טיפול עדכני.',
   },
   {
     icon: 'lock',
-    title: 'מאובטח לחלוטין',
-    description: 'המסמכים שלכם שמורים בסביבה מאובטחת עם הצפנה מלאה.',
+    title: 'העלאה מאובטחת',
+    description: 'קבצי ה-PDF מועלים ונשמרים בצורה מאובטחת ומסודרת.',
+  },
+  {
+    icon: 'groups',
+    title: 'למשתמשים פרטיים וניהול פנימי',
+    description: 'מתאים גם לשימוש אישי וגם לניהול דוחות בהיקף ארגוני.',
+  },
+];
+
+const trustPoints = [
+  {
+    icon: 'shield_lock',
+    title: 'תשתית מאובטחת',
+    description: 'המערכת משתמשת בתשתית מאובטחת לאחסון ולניהול המידע.',
+  },
+  {
+    icon: 'folder_open',
+    title: 'אחסון מסודר',
+    description: 'הקבצים שלכם נשמרים בצורה מסודרת ונגישה רק לבעל הדוח.',
+  },
+  {
+    icon: 'admin_panel_settings',
+    title: 'גישה מבוקרת',
+    description: 'הגישה לדוחות מוגבלת לפי הרשאות המשתמש במערכת.',
   },
 ];
 
 function LandingPage() {
   return (
-    <div>
-      {/* ── Hero ── */}
-      <section className="hero-section">
-        <div className="container hero-content">
-          <span className="eyebrow">
-            <Icon name="security" />
-            TicketGuard — מנוע ניתוח דוחות תנועה
-          </span>
-          <h1>האם כדאי להגיש<br />ערעור על הדוח?</h1>
-          <p>
-            קבלו הערכה חכמה ומהירה של סיכויי הביטול לפני שאתם מחליטים לשלם או לערער.
-            המערכת מנתחת את הדוח שלכם ומספקת המלצה ברורה ומנומקת.
-          </p>
-          <div className="hero-actions">
-            <Link to="/upload" className="button button-primary">
-              <Icon name="upload_file" />
-              בדיקת דוח חינם
-            </Link>
-            <Link to="/login" className="button button-secondary">
-              <Icon name="account_circle" />
-              כניסה לאזור האישי
-            </Link>
-          </div>
-        </div>
-      </section>
+    <div className="landing-page">
+      <LandingHeader />
 
-      {/* ── How it works ── */}
-      <section className="stitch-section container">
-        <div className="section-heading">
-          <h2>איך זה עובד?</h2>
-          <p>תהליך פשוט ושקוף — מהעלאה ועד תשובה ב-3 שלבים.</p>
-        </div>
-        <div className="steps-grid">
-          {steps.map((step, i) => (
-            <article className="step-card card" key={step.title}>
-              <div className="step-number">{i + 1}</div>
-              <div className="step-icon">
-                <Icon name={step.icon} />
-              </div>
-              <h3>{step.title}</h3>
-              <p>{step.description}</p>
-            </article>
-          ))}
-        </div>
-      </section>
+      <main>
+        <HeroSection />
 
-      {/* ── Benefits ── */}
-      <section className="benefits-section">
-        <div className="container">
+        {/* ── How it works ── */}
+        <section className="stitch-section container">
           <div className="section-heading">
-            <h2>למה TicketGuard?</h2>
-            <p>הכלי הדיגיטלי החכם לניהול דוחות תנועה.</p>
+            <h2>איך זה עובד?</h2>
+            <p>תהליך פשוט ושקוף — מהעלאה ועד מעקב, בשלושה שלבים.</p>
           </div>
-          <div className="benefits-grid">
-            {benefits.map((b) => (
-              <div className="benefit-card" key={b.title}>
-                <div className="benefit-icon">
-                  <Icon name={b.icon} />
-                </div>
-                <div>
-                  <h3>{b.title}</h3>
-                  <p>{b.description}</p>
-                </div>
-              </div>
+          <div className="steps-grid">
+            {steps.map((step, i) => (
+              <ProcessStepCard
+                key={step.title}
+                number={i + 1}
+                icon={step.icon}
+                title={step.title}
+                description={step.description}
+              />
             ))}
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ── CTA ── */}
-      <section className="cta-section">
-        <div className="container">
-          <h2>מוכנים לבדוק את הדוח שלכם?</h2>
-          <p>הדוח הראשון חינם — ללא הרשמה, ללא חיוב. פשוט העלו ותקבלו תשובה.</p>
-          <div className="hero-actions">
-            <Link to="/upload" className="button button-white">
-              <Icon name="upload_file" />
-              התחילו עכשיו — חינם
-            </Link>
-            <Link to="/login" className="button button-outline-white">
-              <Icon name="login" />
-              כניסה לחשבון
-            </Link>
+        {/* ── Benefits ── */}
+        <section className="benefits-section">
+          <div className="container">
+            <div className="section-heading">
+              <h2>למה TicketGuard?</h2>
+              <p>הכלי הדיגיטלי לניהול ומעקב דוחות תנועה במקום אחד.</p>
+            </div>
+            <div className="benefits-grid benefits-grid-4">
+              {benefits.map((b) => (
+                <FeatureCard key={b.title} icon={b.icon} title={b.title} description={b.description} />
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* ── Legal disclaimer ── */}
-      <section className="container stitch-section">
-        <div className="disclaimer-band">
-          <strong>הבהרה משפטית</strong>
-          <p style={{ marginBottom: 0 }}>{legalDisclaimer}</p>
-        </div>
-      </section>
+        {/* ── Trust / Security ── */}
+        <section className="trust-section">
+          <div className="container">
+            <div className="section-heading">
+              <h2>אבטחה ופרטיות</h2>
+              <p>ניהול דוחות רגיש דורש תשתית רגישה — כך אנחנו דואגים לזה.</p>
+            </div>
+            <div className="benefits-grid">
+              {trustPoints.map((t) => (
+                <FeatureCard key={t.title} icon={t.icon} title={t.title} description={t.description} tone="trust" />
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ── Final CTA ── */}
+        <CTASection
+          title="רוצה לבדוק את הדוח שלך?"
+          description="העלה את הדוח וקבל תהליך מסודר וברור באזור האישי."
+          primary={{ to: '/upload', label: 'התחלת בדיקה', icon: 'upload_file' }}
+          secondary={{ to: '/login', label: 'כניסה למערכת', icon: 'login' }}
+        />
+
+        {/* ── Legal disclaimer ── */}
+        <section className="container stitch-section">
+          <div className="disclaimer-band">
+            <strong>הבהרה משפטית</strong>
+            <p style={{ marginBottom: 0 }}>{legalDisclaimer}</p>
+          </div>
+        </section>
+      </main>
+
+      <LandingFooter />
     </div>
   );
 }

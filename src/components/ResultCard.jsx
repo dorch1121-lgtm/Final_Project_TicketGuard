@@ -9,7 +9,7 @@ const toneIcons = {
 
 function ResultCard({ title, items, tone = 'neutral' }) {
   return (
-    <article className={`result-card result-${tone}`}>
+    <article className={`result-card result-${tone} card`}>
       <div className="result-card-title">
         <span className="result-icon">
           <Icon name={toneIcons[tone] || toneIcons.neutral} />

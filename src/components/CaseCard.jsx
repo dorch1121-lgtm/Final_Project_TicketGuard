@@ -1,6 +1,10 @@
+import { Link } from 'react-router-dom';
 import Icon from './Icon';
+import StatusBadge from './StatusBadge';
 
-function CaseCard({ caseItem, actionLabel, variant = 'card' }) {
+function CaseCard({ caseItem, actionLabel = 'צפייה בפרטים', variant = 'card' }) {
+  const detailsHref = caseItem.id ? `/reports/${caseItem.id}` : null;
+
   if (variant === 'admin-row') {
     return (
       <article className="admin-case-row">
@@ -12,20 +16,30 @@ function CaseCard({ caseItem, actionLabel, variant = 'card' }) {
             <p>
               <strong>מזהה פנייה:</strong> <span>{caseItem.id}</span>
             </p>
-            <p>
-              <strong>סיבת חריגה:</strong> <mark>{caseItem.reason}</mark>
-            </p>
+            {caseItem.reporterLabel ? (
+              <p className="case-row-meta">
+                <Icon name="person" /> {caseItem.reporterLabel}
+              </p>
+            ) : null}
+            {caseItem.reason ? (
+              <p>
+                <strong>סיבת חריגה:</strong> <mark>{caseItem.reason}</mark>
+              </p>
+            ) : null}
             <p className="case-row-meta">
               {caseItem.type} · {caseItem.authority} ·{' '}
               {caseItem.chance === null ? 'לא זוהה' : `${caseItem.chance}%`}
             </p>
           </div>
         </div>
-        {actionLabel ? (
-          <button className="button button-primary admin-case-action" type="button">
-            {actionLabel}
-          </button>
-        ) : null}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexShrink: 0 }}>
+          {caseItem.statusRaw ? <StatusBadge status={caseItem.statusRaw} /> : null}
+          {detailsHref ? (
+            <Link to={detailsHref} className="button button-primary admin-case-action">
+              {actionLabel}
+            </Link>
+          ) : null}
+        </div>
       </article>
     );
   }
@@ -37,7 +51,11 @@ function CaseCard({ caseItem, actionLabel, variant = 'card' }) {
           <span className="eyebrow">{caseItem.id}</span>
           <h3>{caseItem.title || caseItem.type}</h3>
         </div>
-        <span className="status-pill">{caseItem.status || caseItem.reason}</span>
+        {caseItem.statusRaw ? (
+          <StatusBadge status={caseItem.statusRaw} />
+        ) : (
+          <span className="status-pill">{caseItem.status || caseItem.reason}</span>
+        )}
       </div>
       <dl className="case-details">
         {caseItem.type ? (
@@ -74,10 +92,11 @@ function CaseCard({ caseItem, actionLabel, variant = 'card' }) {
         ) : null}
       </dl>
       {caseItem.note ? <p className="case-note">{caseItem.note}</p> : null}
-      {actionLabel ? (
-        <button className="button button-secondary case-action" type="button">
+      {detailsHref ? (
+        <Link to={detailsHref} className="button button-secondary case-action">
+          <Icon name="visibility" />
           {actionLabel}
-        </button>
+        </Link>
       ) : null}
     </article>
   );

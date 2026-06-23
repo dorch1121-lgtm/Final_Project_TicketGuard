@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { getCurrentSession, getUserProfile } from './auth';
+import { createContext, createElement, useContext, useEffect, useState } from 'react';
+import { getCurrentUser, getUserProfile } from './auth';
 import { supabase } from './supabase';
 
 const initialAuthState = {
@@ -11,6 +11,8 @@ const initialAuthState = {
   isSuperAdmin: false,
 };
 
+const AuthContext = createContext(initialAuthState);
+
 function buildAuthState(user, profile) {
   const role = profile?.role ?? null;
 
@@ -19,19 +21,19 @@ function buildAuthState(user, profile) {
     user,
     profile,
     role,
-    isAdmin: role === 'admin' || role === 'super_admin',
+    isAdmin: role === 'super_admin',
     isSuperAdmin: role === 'super_admin',
   };
 }
 
 async function loadAuthState() {
-  const { data: sessionData, error: sessionError } = await getCurrentSession();
+  const { data: userData, error: userError } = await getCurrentUser();
 
-  if (sessionError || !sessionData?.session?.user) {
+  if (userError || !userData?.user) {
     return buildAuthState(null, null);
   }
 
-  const user = sessionData.session.user;
+  const user = userData.user;
   const { data: profile, error: profileError } = await getUserProfile(user.id);
 
   if (profileError) {
@@ -41,7 +43,7 @@ async function loadAuthState() {
   return buildAuthState(user, profile);
 }
 
-export function useAuthProfile() {
+export function AuthProvider({ children }) {
   const [authState, setAuthState] = useState(initialAuthState);
 
   useEffect(() => {
@@ -70,7 +72,11 @@ export function useAuthProfile() {
     };
   }, []);
 
-  return authState;
+  return createElement(AuthContext.Provider, { value: authState }, children);
+}
+
+export function useAuthProfile() {
+  return useContext(AuthContext);
 }
 
 export default useAuthProfile;
