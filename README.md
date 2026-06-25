@@ -1,102 +1,140 @@
+
 # TicketGuard
 
-טיקט גארד היא אפליקציית React בעברית לניתוח ראשוני של דוחות תנועה, דוחות חניה וקנסות רשמיים. המשתמש מעלה דוח PDF, והמערכת מציגה תוצאת דמו עם סיכויי ערעור משוערים, נקודות חוזק, נקודות חולשה, מידע חסר והמלצה כללית.
+מערכת אינטרנטית לבדיקת דוחות תנועה, ניהול פניות משתמשים וניהול מנהל מערכת.
 
-## Main Features
+## קישור לפרויקט החי
 
-- ממשק RTL בעברית
-- העלאת דוח PDF לבדיקה מדומה
-- ולידציה לקובץ PDF בלבד
-- מצב טעינה בזמן ניתוח מדומה
-- השלמת פרטים חסרים
-- תצוגת תוצאת ניתוח עם אחוז סיכוי לערעור
-- אזור אישי עם דוחות דמו
-- מסך ניהול למקרים חריגים לבדיקה ידנית
-- עיצוב Frontend מבוסס Google Stitch
+https://final-project-ticket-guard.vercel.app/
 
-## Tech Stack
+## קישורי כניסה למערכת
 
-- Vite
-- React
-- React Router
-- CSS
+אזור משתמש:
+https://final-project-ticket-guard.vercel.app/dashboard
 
-## Run Locally
+אזור מנהל:
+https://final-project-ticket-guard.vercel.app/admin
 
-```bash
+יש לציין שפרטי התחברות לבדיקה נמסרים במסמך ההגשה בלבד, ולא בתוך README.
+
+## סקירה כללית
+
+הסבר ש-TicketGuard היא מערכת דיגיטלית שמאפשרת למשתמשים להעלות דוח תנועה לבדיקה, לקבל תוצאה ראשונית לגבי מצב הדוח, לעקוב אחר הדוחות שהועלו ולנהל את המשך התהליך מתוך אזור אישי.
+
+כתוב שהמערכת כוללת שני סוגי משתמשים:
+
+* משתמש רגיל: התחברות, העלאת דוח, צפייה בדוחות האישיים ומעקב אחר סטטוס.
+* מנהל מערכת: צפייה בכלל המשתמשים והדוחות, ניהול תשלומים, מעקב אחר פעילות מערכת ופיקוח על הטיפול בדוחות.
+
+## הבעיה שהפרויקט פותר
+
+הסבר שתהליך טיפול בדוחות תנועה נעשה לרוב בצורה לא מסודרת: שמירת קבצים בטלפון, התייעצות בוואטסאפ, חיפוש מידע באינטרנט או ניהול ידני באקסל. כתוצאה מכך קשה לעקוב אחר מצב הדוח, להבין מה השלב הבא ולרכז את המידע במקום אחד.
+
+הסבר ש-TicketGuard מרכזת את התהליך במקום אחד ומאפשרת למשתמש להעלות דוח, לקבל הכוונה ראשונית ולנהל את הדוחות בצורה ברורה ומסודרת.
+
+## קהל יעד
+
+כתוב שהמערכת מיועדת לנהגים שקיבלו דוח תנועה ורוצים לבדוק את פרטי הדוח, להבין את מצב הטיפול ולעקוב אחר המשך התהליך בצורה דיגיטלית.
+
+בנוסף, המערכת מיועדת למנהל מערכת שצריך לנהל משתמשים, דוחות, תשלומים ופעילות מערכת בצורה מסודרת.
+
+## מתחרים ובידול
+
+ציין פתרונות קיימים:
+
+* שמירת הדוח כ-PDF או תמונה בטלפון
+* ניהול ידני באקסל
+* התייעצות בוואטסאפ
+* חיפוש מידע כללי באינטרנט
+* פנייה ידנית לגורם מקצועי
+
+הסבר שהבידול של TicketGuard הוא ריכוז כל התהליך במקום אחד: העלאת דוח, צפייה בסטטוס, אזור אישי, הפרדה בין משתמש רגיל למנהל מערכת, וממשק ניהול ייעודי למנהל.
+
+## פיצ׳רים מרכזיים
+
+כתוב רשימת פיצ׳רים:
+
+* הרשמה והתחברות משתמשים
+* הפרדה בין משתמש רגיל לבין מנהל מערכת
+* העלאת דוח תנועה לבדיקה
+* אזור אישי למשתמש
+* צפייה בדוחות שהועלו
+* ניהול דוחות בממשק מנהל
+* ניהול משתמשים
+* ניהול תשלומים
+* צפייה בפעילות מערכת
+* הרשאות וגישה מאובטחת לנתונים באמצעות Supabase
+
+## טכנולוגיות
+
+כתוב:
+
+* React
+* Vite
+* JavaScript
+* CSS
+* Supabase
+* Supabase Auth
+* Supabase Database
+* Supabase RLS Policies
+* Supabase Edge Functions
+* Vercel
+* GitHub
+
+## מודל נתונים ו-ERD
+
+כתוב שמודל הנתונים של הפרויקט מתועד בקובץ:
+
+[DATA_DESIGN.md](./DATA_DESIGN.md)
+
+הסבר שהקובץ כולל תרשים ERD, טבלאות, קשרים בין ישויות ותיאור מבנה הנתונים של המערכת.
+
+## שירותים חיצוניים ואינטגרציות
+
+צור טבלת Markdown עם העמודות:
+שירות | סוג | למה משמש
+
+הכנס את השירותים הבאים:
+
+* Supabase | Backend as a Service | ניהול מסד נתונים, משתמשים, הרשאות וגישה לנתונים
+* Supabase Auth | Authentication | הרשמה, התחברות וניהול משתמשים
+* Supabase RLS | Security / Authorization | הגבלת גישה לנתונים לפי משתמש והרשאות
+* Supabase Edge Functions | Server Logic | פעולות שרת מאובטחות כמו יצירת משתמש מנהל ואישור תשלום
+* Vercel | Hosting / Deployment | פרסום האתר באינטרנט והרצת גרסת Production
+* GitHub | Version Control | שמירת הקוד, ניהול גרסאות וחיבור ל-Vercel לצורך Deploy
+
+## הוראות הרצה מקומית
+
+כתוב:
+
+יש לוודא שמותקן Node.js.
+
+התקנת תלויות:
+
 npm install
+
+הרצת הפרויקט מקומית:
+
 npm run dev
-```
 
-לאחר ההרצה, פתחו את כתובת הפיתוח שמופיעה בטרמינל.
+בניית גרסת Production:
 
-## Current Status
+npm run build
 
-הפרויקט נמצא בשלב Frontend בלבד:
+## משתני סביבה
 
-- משתמש בנתוני דמו בלבד
-- אין Backend
-- אין חיבור ל-Supabase
-- אין אימות משתמשים אמיתי
-- אין OCR או AI אמיתי
-- אין תשלום אמיתי
+כתוב שהפרויקט משתמש ב-Supabase ולכן יש להגדיר קובץ .env מקומי עם המשתנים:
 
-## Routes / Pages
+VITE_SUPABASE_URL=
+VITE_SUPABASE_ANON_KEY=
 
-- `/` - Landing page
-- `/upload` - Upload report
-- `/missing-details` - Missing details
-- `/result` - Analysis result
-- `/dashboard` - User dashboard
-- `/admin` - Admin review
-- `/login` - Login
+כתוב שהערכים עצמם אינם נשמרים ב-GitHub ומוגדרים ב-Vercel תחת Environment Variables.
 
-## Module 7 - Data Design
+## Deployment
 
-The project now includes a complete data design document.
+כתוב שהאתר פורסם באמצעות Vercel וזמין בכתובת:
 
-`DATA_DESIGN.md` contains entities, attributes, relationships, CRUD matrix, ERD diagram, and role-based permissions.
+https://final-project-ticket-guard.vercel.app/
 
-This prepares the project for the next backend stage with Supabase.
+כתוב שכל עדכון לקוד שנשלח ל-GitHub בענף main מפעיל Deployment חדש ב-Vercel.
 
-## Module 8 - Supabase Preparation
-
-Module 8 preparation includes a Supabase schema file:
-
-`SUPABASE_SCHEMA.sql`
-
-The schema defines the planned TicketGuard backend tables, including profiles, report cases, analysis data, payments, admin invitations, and role audit logs. RLS policies are not enabled yet.
-
-## Module 8 - Supabase Setup
-
-The Supabase client setup was added in `src/lib/supabase.js`.
-
-Environment variables are required before connecting the app to your Supabase project. Create a local `.env` file from `.env.example` and fill in your Supabase project URL and publishable/anon key.
-
-Never commit `.env` to GitHub.
-
-## Module 8 - RLS Security
-
-Row Level Security policies were added in `RLS_POLICIES.sql`.
-
-The policies limit regular users to their own data, allow admins to access only exceptional cases that require manual review, and reserve admin invitations and role permission changes for the `super_admin` role.
-
-## Module 8 - Storage
-
-A private Supabase Storage bucket named `report-pdfs` was created for uploaded report PDFs.
-
-`STORAGE_POLICIES.sql` contains the bucket access policies. Uploaded PDF files should use the path format `user_id/report_case_id/file_name.pdf`.
-
-The bucket is intended for PDF reports only.
-
-## Module 8 - Real Upload Flow
-
-`UploadReportPage` now uploads PDF files to Supabase Storage and creates report records in Supabase tables.
-
-AI/OCR is still mocked for now; the app stores realistic mock analysis data when permitted by RLS and falls back to existing mock display data when needed.
-
-RLS and Storage policies protect user report data.
-
-## Legal Note
-
-המערכת מספקת הערכה בלבד ואינה מהווה ייעוץ משפטי. אין באפליקציה התחייבות לביטול הדוח.
