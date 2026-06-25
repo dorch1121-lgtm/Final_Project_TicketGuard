@@ -1,41 +1,43 @@
-# TicketGuard - Backend Data Design for Module 8
+# TicketGuard - Backend Data Design & ERD
 
 ## 1. Purpose
 
-This document defines the future backend data model for TicketGuard before creating the Supabase tables.
+This document describes the backend data model and ERD for the final TicketGuard project.
 
-TicketGuard is currently a frontend-only Hebrew RTL React app that lets users upload traffic, parking, or municipal fine PDFs, complete missing details, and receive a demo estimate of appeal success. The current app still uses demo data only. This design prepares the project for a Supabase backend without changing the React UI, CSS, routes, or existing frontend behavior.
+TicketGuard is a deployed React + Vite web application connected to Supabase for authentication, database storage, authorization policies, and secure server-side logic. The system supports regular users and admin/super_admin users, report case management, payment tracking, and protected access to user-owned data.
+
+The model below documents the main application entities, their relationships, the role and permission model, the CRUD rules, and the Supabase implementation notes used by the final deployed project.
 
 ## 2. Authentication and App Profiles
 
-Supabase Auth will handle the real login identity, including authentication credentials, login sessions, and the canonical `auth.users.id` value.
+Supabase Auth handles real user authentication, login sessions, and the canonical `auth.users.id` identity for each authenticated account.
 
-The app-specific user record will live in the `profiles` table. A profile stores TicketGuard-specific fields such as full name, email, role, free report usage, and payment status. The `profiles.user_id` field references `auth.users(id)`.
+The app-specific user record is stored in the `profiles` table. A profile stores TicketGuard-specific fields such as full name, email, role, payment status, and free report usage. The `profiles.user_id` field references `auth.users(id)`, linking the Supabase Auth identity to the application profile.
 
-Guests are unauthenticated users and therefore do not need a `profiles` row until they register or log in. A future guest flow can allow one free report before requiring login or payment.
+Authentication is implemented in the final project. After a user signs up or signs in, the app uses Supabase Auth session state together with the related profile row to determine what the user can see and do.
+
+Guests are unauthenticated visitors. They do not have a `profiles` row until they register or log in.
 
 ## 3. Role Model
 
-TicketGuard must support four access levels:
+TicketGuard supports four access levels:
 
 | Role | Meaning |
 |---|---|
-| Guest | Unauthenticated visitor. In the future, can use one free report flow. |
-| User | Authenticated customer. Can access only their own report cases, files, answers, analysis results, and payments. |
-| Admin | Internal reviewer. Can view and update only exceptional report cases that require manual review. Admins cannot manage users or create other admins. |
-| Super Admin | Project owner role. The only role allowed to invite admins, promote users to admin, demote admins, and manage role permissions. |
+| Guest | Unauthenticated visitor who can access public pages such as the landing and login pages. |
+| User | Authenticated customer. Can access only their own reports, files, answers, analysis results, and payment records. |
+| Admin | Internal admin user. Can access admin dashboards and manage report/payment data according to the permissions defined by the database policies and server-side logic. |
+| Super Admin | Highest permission level. Can manage admin-related actions, including admin invitations and role changes where permitted. |
 
 Important role rules:
 
-- The project owner should be the only `super_admin`.
-- The SQL schema enforces this with a partial unique index that allows only one `super_admin` profile.
-- Only `super_admin` can create admin invitations.
-- Only `super_admin` can promote a user to `admin`.
-- Only `super_admin` can remove `admin` permissions.
-- Admin users can review exceptional cases only.
-- Admin users must not be able to create other admins.
-- Users must not be able to update their own role.
-- Every admin promotion or demotion must be recorded in `role_audit_logs`.
+- Users can access only their own reports and payments.
+- Admin and super_admin users can access admin dashboards according to their permissions.
+- Super admin is the highest permission level and can manage admin-related actions.
+- Users cannot update their own role.
+- Admin users cannot create other admins unless the server-side permission flow allows it through a super_admin action.
+- Admin permissions are protected by database policies and server-side logic where needed.
+- Every admin promotion or demotion is recorded in `role_audit_logs`.
 
 In the database, `profiles.role` supports only authenticated app roles:
 
@@ -49,13 +51,19 @@ In the database, `profiles.role` supports only authenticated app roles:
 
 | Frontend page | Main backend entities | Notes |
 |---|---|---|
-| LandingPage | profiles, report_cases, analysis_results, payments | Introduces the service and future free report flow. |
-| UploadReportPage | report_cases, report_files, profiles, payments | Creates a report case and stores uploaded PDF metadata. |
-| MissingDetailsPage | report_cases, extracted_report_details, missing_details, user_answers | Shows extracted details and asks for missing data. |
+| LandingPage | profiles, report_cases, analysis_results, payments | Introduces the service and routes users toward login, upload, and dashboard flows. |
+| LoginPage | Supabase Auth, profiles | Supabase Auth handles authentication; profiles store app-specific user data and role. |
+| UploadReportPage | report_cases, report_files, profiles, payments | Creates report cases and stores uploaded PDF metadata. |
 | AnalysisResultPage | report_cases, analysis_results, analysis_factors, missing_details | Shows appeal chance, risk level, factors, recommendation, and disclaimer. |
-| UserDashboardPage | profiles, report_cases, analysis_results, payments | Shows only the logged-in user's report cases. |
-| AdminReviewPage | report_cases, admin_reviews, analysis_results, analysis_factors | Shows only exceptional cases that require manual review. |
-| LoginPage | Supabase Auth, profiles | Auth handles login; profiles stores app-specific user data and role. |
+| UserDashboardPage / MyReportsPage | profiles, report_cases, analysis_results, payments | Shows only the logged-in user's report cases and relevant status information. |
+| ReportDetailsPage | report_cases, report_files, extracted_report_details, analysis_results, analysis_factors, payments | Shows a single report case with related details, analysis, and payment state. |
+| PaymentPage | payments, profiles, report_cases | Displays and updates payment-related state for the user/report flow. |
+| AdminReviewPage | report_cases, admin_reviews, analysis_results, analysis_factors | Supports admin review of cases that require manual attention. |
+| AdminReportsPage | report_cases, report_files, extracted_report_details, analysis_results, admin_reviews | Lets admins review and manage report cases. |
+| AdminUsersPage | profiles, payments, report_cases, role_audit_logs | Lets admins view users according to their permissions. |
+| AdminPaymentsPage | payments, profiles, report_cases | Lets admins monitor and manage payment records. |
+| AdminActivityPage | role_audit_logs, admin_reviews, payments, report_cases | Shows administrative and system activity. |
+| AdminSettingsPage | profiles, admin_invitations, role_audit_logs | Supports admin-related settings, invitations, and role-management audit visibility. |
 
 ## 5. Final Entity List
 
@@ -76,7 +84,7 @@ In the database, `profiles.role` supports only authenticated app roles:
 
 ### Profile
 
-Profiles store app-specific user data and role information. Supabase Auth stores the actual login user.
+Profiles store app-specific user data and role information. Supabase Auth stores the actual login identity.
 
 | Attribute name | Data type | Description | Shown in UI? |
 |---|---|---|---|
@@ -85,17 +93,19 @@ Profiles store app-specific user data and role information. Supabase Auth stores
 | full_name | text | User's full name. | Yes |
 | email | text | User email. | Yes |
 | role | enum/text | Allowed values: `user`, `admin`, `super_admin`. | Yes, for admin surfaces |
-| free_report_used | boolean | Whether the user has already used the future free report. | Yes |
+| free_report_used | boolean | Whether the user has already used the included free report allowance. | Yes |
 | payment_status | enum/text | Payment state: `none`, `required`, `paid`, `failed`. | Yes |
 | created_at | timestamp | Profile creation time. | No |
 | updated_at | timestamp | Last profile update time. | No |
 
 ### ReportCase
 
+Report cases represent user-submitted traffic report cases and their current processing state.
+
 | Attribute name | Data type | Description | Shown in UI? |
 |---|---|---|---|
 | id | uuid | Report case id. | Yes |
-| user_id | uuid | Owner user id. Nullable for a future guest flow. | No |
+| user_id | uuid | Owner user id. | No |
 | report_type | text | Fine type, such as parking, traffic, or municipality. | Yes |
 | authority | text | Authority that issued the fine. | Yes |
 | status | enum/text | Case state: `uploaded`, `missing_details`, `analyzing`, `analyzed`, `manual_review`, `closed`. | Yes |
@@ -107,12 +117,14 @@ Profiles store app-specific user data and role information. Supabase Auth stores
 
 ### ReportFile
 
+Report files store metadata for uploaded PDF reports.
+
 | Attribute name | Data type | Description | Shown in UI? |
 |---|---|---|---|
 | id | uuid | File metadata id. | No |
 | report_case_id | uuid | Related report case. | No |
 | file_name | text | Uploaded PDF file name. | Yes |
-| file_url | text | Future Supabase Storage URL or path. | No |
+| file_url | text | Supabase Storage URL or storage path. | No |
 | file_type | text | MIME type, usually `application/pdf`. | Yes |
 | file_size | bigint | File size in bytes. | No |
 | upload_status | enum/text | `pending`, `uploaded`, or `failed`. | Yes |
@@ -120,6 +132,8 @@ Profiles store app-specific user data and role information. Supabase Auth stores
 | updated_at | timestamp | Last update time. | No |
 
 ### ExtractedReportDetails
+
+Extracted report details store structured data parsed from the uploaded report.
 
 | Attribute name | Data type | Description | Shown in UI? |
 |---|---|---|---|
@@ -140,6 +154,8 @@ Profiles store app-specific user data and role information. Supabase Auth stores
 
 ### MissingDetail
 
+Missing details represent data points that the system needs from the user before the report can be fully processed.
+
 | Attribute name | Data type | Description | Shown in UI? |
 |---|---|---|---|
 | id | uuid | Missing detail id. | No |
@@ -153,17 +169,21 @@ Profiles store app-specific user data and role information. Supabase Auth stores
 
 ### UserAnswer
 
+User answers store responses submitted for missing detail prompts.
+
 | Attribute name | Data type | Description | Shown in UI? |
 |---|---|---|---|
 | id | uuid | Answer id. | No |
 | missing_detail_id | uuid | Related missing detail. | No |
 | report_case_id | uuid | Related report case. | No |
-| user_id | uuid | User who answered. Nullable for a future guest flow. | No |
+| user_id | uuid | User who submitted the answer. | No |
 | answer_value | text | User answer. | Yes |
 | created_at | timestamp | Creation time. | No |
 | updated_at | timestamp | Last update time. | No |
 
 ### AnalysisResult
+
+Analysis results store the system's output for a report case.
 
 | Attribute name | Data type | Description | Shown in UI? |
 |---|---|---|---|
@@ -179,6 +199,8 @@ Profiles store app-specific user data and role information. Supabase Auth stores
 
 ### AnalysisFactor
 
+Analysis factors break the result into strong points, weak points, and missing information.
+
 | Attribute name | Data type | Description | Shown in UI? |
 |---|---|---|---|
 | id | uuid | Analysis factor id. | No |
@@ -191,7 +213,7 @@ Profiles store app-specific user data and role information. Supabase Auth stores
 
 ### AdminReview
 
-Admins can read and update only exceptional cases that require manual review. Their update scope should be limited to review status, notes, and reviewer metadata.
+Admin reviews track manual review work for report cases that require admin attention.
 
 | Attribute name | Data type | Description | Shown in UI? |
 |---|---|---|---|
@@ -207,6 +229,8 @@ Admins can read and update only exceptional cases that require manual review. Th
 
 ### Payment
 
+Payments track the payment state for users and report-related paid flows.
+
 | Attribute name | Data type | Description | Shown in UI? |
 |---|---|---|---|
 | id | uuid | Payment id. | No |
@@ -215,7 +239,7 @@ Admins can read and update only exceptional cases that require manual review. Th
 | amount | numeric | Payment amount. | Yes |
 | currency | text | Currency, such as `ILS`. | Yes |
 | payment_status | enum/text | `pending`, `paid`, `failed`, or `refunded`. | Yes |
-| provider | text | Future payment provider. | No |
+| provider | text | Payment provider. | No |
 | provider_transaction_id | text | Provider transaction id. | No |
 | paid_at | timestamp | Actual payment time. | Yes |
 | created_at | timestamp | Creation time. | No |
@@ -223,7 +247,7 @@ Admins can read and update only exceptional cases that require manual review. Th
 
 ### AdminInvitation
 
-Admin invitations support inviting an existing or future user to become an admin.
+Admin invitations support inviting an email address to become an admin through the controlled admin invitation flow.
 
 Only `super_admin` can create admin invitations. `role_to_grant` is intentionally limited to `admin`; invitations must not create additional super admins.
 
@@ -243,16 +267,16 @@ Only `super_admin` can create admin invitations. `role_to_grant` is intentionall
 
 Role audit logs track role changes for accountability.
 
-Every admin promotion or demotion should create a row in this table.
+Every admin promotion or demotion creates a row in this table.
 
 | Attribute name | Data type | Description | Shown in UI? |
 |---|---|---|---|
 | id | uuid | Audit log id. | No |
 | actor_user_id | uuid | Super admin who performed the role change. | No |
 | target_user_id | uuid | User whose role changed. | No |
-| old_role | enum/text | Previous role. | Yes, for owner/admin audit screens |
-| new_role | enum/text | New role. | Yes, for owner/admin audit screens |
-| action | text | Action name, such as `promote_admin` or `demote_admin`. | Yes, for owner/admin audit screens |
+| old_role | enum/text | Previous role. | Yes, for admin audit screens |
+| new_role | enum/text | New role. | Yes, for admin audit screens |
+| action | text | Action name, such as `promote_admin` or `demote_admin`. | Yes, for admin audit screens |
 | created_at | timestamp | Audit event time. | No |
 
 ## 7. Relationships
@@ -270,6 +294,7 @@ Every admin promotion or demotion should create a row in this table.
 | AnalysisResult | One-to-Many | AnalysisFactor | An analysis contains several factors. |
 | ReportCase | One-to-Zero-or-One | AdminReview | Only exceptional cases require an admin review. |
 | Profile | One-to-Many | Payment | A user can make many payments. |
+| ReportCase | One-to-Many | Payment | A report case may have related payment records. |
 | Profile | One-to-Many | AdminInvitation through `invited_by` | A super admin can create many admin invitations. |
 | Profile | One-to-Many | RoleAuditLog as `actor_user_id` | A super admin can perform many role changes. |
 | Profile | One-to-Many | RoleAuditLog as `target_user_id` | A user can be the target of many role changes. |
@@ -278,29 +303,28 @@ Every admin promotion or demotion should create a row in this table.
 
 | Entity | Create | Read | Update | Delete |
 |---|---|---|---|---|
-| Profile | System after Supabase Auth signup | User reads self; Super Admin can read for role management; Admin only if required for assigned exceptional review context | User can update own profile fields but not role; System can update free report/payment fields; only Super Admin can promote/demote admin roles | System or owner process only; no normal manual delete |
-| ReportCase | Guest/User/System during report upload | Guest reads only current guest flow result; User reads only own cases; Admin reads only exceptional cases; Super Admin can read for oversight | System updates analysis/status/exception flags; Admin updates only review-related status/notes through AdminReview | System or owner process only |
-| ReportFile | Guest/User/System during PDF upload | Owner user reads own file metadata; Admin reads only files for exceptional cases if required; System reads for analysis | System updates upload status and storage URL/path | System or owner process only |
-| ExtractedReportDetails | System after OCR/AI extraction | Owner user reads own details; Admin reads only exceptional cases; System reads for analysis | System updates after re-processing | System only |
-| MissingDetail | System when extraction finds missing data | Owner user reads own missing details; Admin reads only exceptional cases | User can answer related prompts; System updates missing detail status | System only |
-| UserAnswer | User/Guest submits answers | Owner user reads own answers; Admin reads only exceptional cases; System reads for analysis | User can update before final analysis; System can normalize values | System or owner process only |
-| AnalysisResult | System creates after analysis | Guest/User reads allowed result; Admin reads only exceptional cases; System reads all | System updates after re-analysis | System only |
-| AnalysisFactor | System creates with analysis | Guest/User/Admin read according to related case permissions | System updates after re-analysis | System only |
-| AdminReview | System creates for exceptional cases | Admin reads only exceptional cases requiring manual review; Super Admin can read for oversight | Admin updates only admin review status/notes/reviewer fields; System can auto-close if needed | System or Super Admin only |
-| Payment | System/payment provider creates | User reads own payments; Super Admin or support process reads if needed | System/payment provider updates status | System only; keep records for audit |
-| AdminInvitation | Only Super Admin | Super Admin reads invitations; invited user may validate a pending invite by token flow | Super Admin can revoke; System can mark accepted/expired | Super Admin/System only |
-| RoleAuditLog | System creates when Super Admin changes a role | Super Admin reads audit history | Immutable after creation | No manual delete |
+| Profile | System after Supabase Auth signup | User reads self; admin/super_admin read according to admin permissions | User can update own profile fields but not role; system and permitted admin flows can update payment/status fields; only super_admin flow can change admin-related roles | System or owner process only; no normal manual delete |
+| ReportCase | User/system during report upload | User reads only own cases; admin/super_admin read according to admin permissions | System updates analysis/status/exception flags; admin/super_admin can update admin-managed status where permitted | System or owner process only |
+| ReportFile | User/system during PDF upload | Owner user reads own file metadata; admin/super_admin read according to related case permissions | System updates upload status and storage URL/path | System or owner process only |
+| ExtractedReportDetails | System after extraction | Owner user reads own details; admin/super_admin read according to related case permissions | System updates after processing | System only |
+| MissingDetail | System when extraction finds missing data | Owner user reads own missing details; admin/super_admin read according to related case permissions | User can answer related prompts; system updates missing detail status | System only |
+| UserAnswer | User submits answers | Owner user reads own answers; admin/super_admin read according to related case permissions; system reads for analysis | User can update before final processing; system can normalize values | System or owner process only |
+| AnalysisResult | System creates after analysis | User reads own results; admin/super_admin read according to related case permissions | System updates after re-analysis | System only |
+| AnalysisFactor | System creates with analysis | User/admin/super_admin read according to related case permissions | System updates after re-analysis | System only |
+| AdminReview | System creates for cases requiring review | Admin/super_admin read according to admin permissions | Admin/super_admin update review status, notes, and reviewer fields where permitted; system can auto-close if needed | System or super_admin only |
+| Payment | System/payment flow creates | User reads own payments; admin/super_admin read according to admin permissions | System/payment confirmation flow updates status | System only; keep records for audit |
+| AdminInvitation | Only super_admin flow | Super admin reads invitations; invited user may validate a pending invite by token flow | Super admin can revoke; system can mark accepted/expired | Super admin/system only |
+| RoleAuditLog | System creates when a role changes | Super admin and permitted admin activity views can read audit history | Immutable after creation | No manual delete |
 
 Additional permission requirements:
 
 - User cannot update their own role.
-- Admin cannot update roles.
+- User cannot read another user's reports or payments.
+- Admin cannot promote or demote any user unless the action is performed through the permitted super_admin flow.
 - Admin cannot create admin invitations.
-- Admin cannot promote or demote any user.
-- Only Super Admin can create admin invitations.
-- Only Super Admin can promote users to admin or demote admins back to user.
+- Super admin can create admin invitations and manage admin-related role changes.
 - System can create analysis results and set admin review flags.
-- Admin can read and update only admin review status/notes for exceptional cases.
+- Admin and super_admin permissions are enforced by Supabase RLS policies and secure server-side logic where needed.
 
 ## 9. ERD
 
@@ -474,27 +498,29 @@ erDiagram
 
 ## 10. Supabase Implementation Notes
 
-Module 8 can implement this model in Supabase using the new `SUPABASE_SCHEMA.sql` file in the project root.
+The final TicketGuard project uses Supabase as the backend for authentication, persistent data, authorization, and secure server-side operations.
 
-Technical notes for the backend stage:
+Implementation notes:
 
-- Supabase Auth should remain the source of truth for login users.
-- `profiles.user_id` should reference `auth.users(id)`.
-- Row Level Security should be added later, after the schema exists and the access rules are tested.
-- RLS policies should enforce that users can access only their own cases.
-- RLS policies should enforce that admins can access only exceptional cases.
-- RLS policies should enforce that only the super admin can manage admin invitations and role changes.
+- Supabase Auth is used for user authentication and session management.
+- Supabase tables store profiles, report cases, uploaded report file metadata, extracted report details, missing detail prompts, user answers, analysis results, analysis factors, admin reviews, payments, admin invitations, and role audit logs.
+- `profiles.user_id` references `auth.users(id)`.
+- RLS policies protect user-owned data so regular users can access only their own reports, answers, analysis data, and payments.
+- Admin and super_admin access is separated from regular user access.
+- Admin/super_admin permissions are enforced through Supabase RLS policies and server-side logic where needed.
+- Supabase Edge Functions are used for secure server-side operations, such as admin user creation and payment confirmation.
 - Admin invitation tokens must be hashed before storage.
-- Role changes should be performed through a trusted server-side function or Edge Function so the audit log is always written.
-- The current frontend remains demo-only until Supabase is connected in a later step.
+- Role changes are recorded in `role_audit_logs` for accountability.
+- Environment variables are stored in Vercel and are not committed to GitHub.
 
-## 11. Module 8 Checklist
+## 11. Final Submission Checklist
 
-- [x] Core app entities are mapped to future Supabase tables.
-- [x] Role model includes Guest, User, Admin, and Super Admin.
-- [x] Profiles store app-specific role and user data.
-- [x] Admin invitations are modeled.
-- [x] Role audit logs are modeled.
-- [x] Relationships include admin invitation and role audit ownership.
-- [x] CRUD matrix includes role-management restrictions.
-- [x] SQL schema file is prepared without RLS policies.
+- [x] Supabase Auth is used for authentication.
+- [x] Profiles store app-specific user and role data.
+- [x] Report cases and related entities are modeled.
+- [x] Payment records are modeled.
+- [x] Admin and super_admin roles are modeled.
+- [x] Admin invitations and role audit logs are modeled.
+- [x] ERD is included in this file.
+- [x] RLS and permissions are part of the Supabase implementation.
+- [x] The deployed app is connected to Supabase and Vercel.
